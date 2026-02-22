@@ -28,6 +28,6 @@ const UPLINE_CONFIG = {
 
     // Feature flags
     ONLINE_SYNC_ENABLED: true,      // Check for rule updates from backend
-    HOSPITAL_API_ENABLED: true,     // Try backend hospital API before Overpass
+    HOSPITAL_API_ENABLED: false,    // false = use real GPS/Overpass search (backend data is mock)
     BACKUP_ENABLED: false,          // Cloud backup (opt-in — privacy first)
 };
