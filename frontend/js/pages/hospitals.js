@@ -107,32 +107,7 @@ async function findNearbyHospitals() {
   const container = document.getElementById('hospitals-content');
   if (!container) return;
 
-  // 1. Try our own backend API first (returns faster with curated data)
-  const BACKEND = (typeof UPLINE_CONFIG !== 'undefined' && UPLINE_CONFIG.BACKEND_URL) || '';
-  if (BACKEND && (typeof UPLINE_CONFIG === 'undefined' || UPLINE_CONFIG.HOSPITAL_API_ENABLED)) {
-    try {
-      const backendRes = await fetch(`${BACKEND}/api/hospitals`, { signal: AbortSignal.timeout(3000) });
-      if (backendRes.ok) {
-        const backendData = await backendRes.json();
-        if (backendData.success && backendData.hospitals?.length > 0) {
-          renderHospitalCards(backendData.hospitals.map(h => ({
-            name: h.name,
-            addr: h.address,
-            phone: h.number,
-            dist: null,
-            lat: h.lat,
-            lon: h.lng,
-            type: h.type
-          })));
-          return;
-        }
-      }
-    } catch (e) {
-      console.log('[Hospitals] Backend unavailable, using Overpass API');
-    }
-  }
-
-  // 2. Fall back to GPS + Overpass API
+  // Use real GPS + OpenStreetMap Overpass API for actual nearby hospitals
   if (!navigator.geolocation) {
     container.innerHTML = `
       <div class="empty-state">
