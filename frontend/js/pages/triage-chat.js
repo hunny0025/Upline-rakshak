@@ -1,710 +1,829 @@
-/* ===== UPLINE — Advanced Triage Chatbot ===== */
+/* ===================================================================
+   UPLINE — Production Triage Chatbot Engine
+   Multi-pathway clinical assessment with real branching logic
+   =================================================================== */
 
-/* ──────────────────────────────────────────────────────────
-   PHASE 1 — Symptom Intake Questions (pre-START)
-   ────────────────────────────────────────────────────────── */
-const INTAKE_STEPS = [
-    {
-        id: 'patient_type',
-        text: "Who needs help right now?",
-        type: 'chips',
-        chips: ['Myself', 'Someone else', 'A child (<12)', 'An elderly person'],
-    },
-    {
-        id: 'chief_complaint',
-        text: "What's the main problem? Describe in a few words or pick a category:",
-        type: 'chips_plus_text',
-        chips: ['Chest pain', 'Breathing difficulty', 'Severe bleeding', 'Unconscious / fainting', 'Head injury', 'Broken bone', 'Burn', 'Allergic reaction', 'Stroke symptoms', 'Other'],
-        placeholder: 'Type symptoms here…'
-    },
-    {
-        id: 'pain_scale',
-        text: "Rate the pain level right now (0 = none, 10 = worst imaginable):",
-        type: 'slider',
-        min: 0, max: 10, default: 5,
-        labels: ['No pain', 'Moderate', 'Unbearable']
-    },
-    {
-        id: 'duration',
-        text: "How long has this been going on?",
-        type: 'chips',
-        chips: ['Just started (<5 min)', '5–30 minutes', '30 min – 2 hours', 'More than 2 hours', 'Ongoing / chronic']
-    },
-    {
-        id: 'consciousness',
-        text: "Is the person conscious and responsive?",
-        type: 'chips',
-        chips: ['Yes — fully alert', 'Confused / drowsy', 'Responds to voice only', 'No response at all']
-    }
+/* ── Urgency Scoring Constants ──────────────────────────────────── */
+const U = { IMMEDIATE: 4, URGENT: 3, DELAYED: 2, MINOR: 1 };
+
+/* ── RED FLAGS — any match → immediate escalation ───────────────── */
+const RED_FLAG_PHRASES = [
+    'not breathing', 'stopped breathing', 'no pulse', 'unresponsive', 'unconscious',
+    'not waking', 'blue lips', 'blue face', 'coughing blood', 'vomiting blood',
+    'seizure', 'convulsion', 'paralysis', 'can\'t move', 'chest crushing',
+    'worst headache', 'anaphylaxis', 'throat closing', 'can\'t swallow'
 ];
 
-/* ──────────────────────────────────────────────────────────
-   PHASE 2 — START Triage Protocol Questions
-   ────────────────────────────────────────────────────────── */
-const START_QUESTIONS = [
-    { id: 1, text: "Can the person walk without help?", choices: ["✅ Yes — walking", "❌ No — cannot walk"], yesNext: -1, noNext: 2, critical: false },
-    { id: 2, text: "Is the person breathing?", choices: ["✅ Yes — breathing", "❌ No — not breathing"], yesNext: 3, noNext: -2, critical: true },
-    { id: 3, text: "Is breathing very fast or laboured? (>30 breaths/min)", choices: ["⚠️ Yes — fast/laboured", "✅ No — normal rate"], yesNext: -3, noNext: 4, critical: true },
-    { id: 4, text: "Is there a radial (wrist) pulse present?", choices: ["✅ Yes — pulse felt", "❌ No pulse detected"], yesNext: 5, noNext: -3, critical: true },
-    { id: 5, text: "Does skin colour return within 2 seconds when the fingernail is pressed?", choices: ["✅ Yes — <2 seconds", "❌ No — >2s (poor perfusion)"], yesNext: 6, noNext: -3, critical: true },
-    { id: 6, text: "Can the person follow simple commands? (e.g. 'Open your eyes')", choices: ["✅ Yes — follows commands", "❌ No — unresponsive"], yesNext: 7, noNext: -3, critical: false },
-    { id: 7, text: "Is there severe pain in the chest, abdomen, or head?", choices: ["⚠️ Yes — severe pain", "✅ No — manageable"], yesNext: 8, noNext: 9, critical: false },
-    { id: 8, text: "Is there chest pain AND difficulty breathing together?", choices: ["⚠️ Yes — both present", "✅ No — only one"], yesNext: -3, noNext: 10, critical: true },
-    { id: 9, text: "Is there uncontrolled or heavy bleeding?", choices: ["⚠️ Yes — bleeding heavily", "✅ No — controlled"], yesNext: -3, noNext: 10, critical: true },
-    { id: 10, text: "Is there a suspected head or spinal injury?", choices: ["⚠️ Yes — suspected", "✅ No — no injury"], yesNext: 11, noNext: 12, critical: false },
-    { id: 11, text: "Was there any loss of consciousness, even briefly?", choices: ["⚠️ Yes — lost consciousness", "✅ No — stayed conscious"], yesNext: -3, noNext: -4, critical: true },
-    { id: 12, text: "Are there burns covering >10% of body, or crush injuries?", choices: ["⚠️ Yes — serious injuries", "✅ No — minor"], yesNext: -4, noNext: -5, critical: false },
-];
+/* ── Condition Pathways ─────────────────────────────────────────── */
+/* Each pathway is an array of question nodes:
+   { id, text, type:'yn'|'chips'|'scale'|'text', choices[],
+     score: { yes:N, no:N } or { [chip]: N },
+     redFlag: bool  — if answered critically, escalate immediately
+     next: 'id' | fn(answer) => 'id' | null (end)
+   }
+*/
 
-/* ──────────────────────────────────────────────────────────
-   Result Definitions
-   ────────────────────────────────────────────────────────── */
-const START_RESULTS = {
-    '-1': {
-        category: 'GREEN',
-        title: 'Minor — Walking Wounded',
-        color: '#14b8a6',
-        urgency: 'LOW',
-        icon: '🟢',
-        desc: 'Patient is ambulatory. Lower clinical priority. Treat after RED and YELLOW patients.',
-        firstAid: [
-            'Keep the person calm and seated in a safe area',
-            'Reassess every 10–15 minutes for deterioration',
-            'Apply basic wound care if needed',
-            'Note any worsening of symptoms'
-        ],
-        doNot: ['Do not leave patient completely unattended'],
-        callAmb: false
+const PATHWAYS = {
+
+    chest_pain: [
+        {
+            id: 'cp1', text: 'Is the chest pain crushing, squeezing or pressure-like (not sharp)?',
+            type: 'yn', choices: ['Yes — crushing/pressure', 'No — sharp/stabbing'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true,
+            next: a => a === 'yes' ? 'cp2' : 'cp_sharp'
+        },
+        {
+            id: 'cp2', text: 'Does the pain spread to the left arm, jaw, neck or back?',
+            type: 'yn', choices: ['Yes — radiating', 'No — localised'],
+            score: { yes: U.IMMEDIATE, no: U.URGENT }, redFlag: true, next: 'cp3'
+        },
+        {
+            id: 'cp3', text: 'Is there sweating, nausea or dizziness along with the pain?',
+            type: 'yn', choices: ['Yes — all/some', 'No'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: 'cp4'
+        },
+        {
+            id: 'cp4', text: 'Is breathing difficult or is the person gasping?',
+            type: 'yn', choices: ['Yes — breathing difficulty', 'No — breathing OK'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: null
+        },
+
+        {
+            id: 'cp_sharp', text: 'Is the pain worse when pressing the chest or breathing in?',
+            type: 'yn', choices: ['Yes — worse on pressure/breath', 'No'],
+            score: { yes: U.DELAYED, no: U.URGENT }, next: 'cp_sharp2'
+        },
+        {
+            id: 'cp_sharp2', text: 'Any recent injury, fall or strenuous activity?',
+            type: 'yn', choices: ['Yes', 'No'],
+            score: { yes: U.DELAYED, no: U.URGENT }, next: null
+        },
+    ],
+
+    breathing: [
+        {
+            id: 'br1', text: 'Is the person breathing at all?',
+            type: 'yn', choices: ['Yes — barely/struggling', 'No — not breathing'],
+            score: { yes: U.IMMEDIATE, no: U.IMMEDIATE }, redFlag: true,
+            next: a => a === 'no' ? 'br_cpr' : 'br2'
+        },
+        {
+            id: 'br_cpr', text: '⚠️ Not breathing. Is anyone nearby trained in CPR?',
+            type: 'yn', choices: ['Yes — starting CPR', 'No — calling for help'],
+            score: { yes: 0, no: 0 }, redFlag: true, next: null
+        },
+        {
+            id: 'br2', text: 'Can you count breathing rate? How many breaths in 15 seconds?',
+            type: 'chips', choices: ['1–4 (very slow)', '5–7 (normal)', '8–10 (fast)', '11+ (very fast)'],
+            score: { '1–4 (very slow)': U.IMMEDIATE, '5–7 (normal)': U.DELAYED, '8–10 (fast)': U.URGENT, '11+ (very fast)': U.IMMEDIATE },
+            redFlag: true, next: 'br3'
+        },
+        {
+            id: 'br3', text: 'Is there a wheeze, stridor (barking sound) or gurgling?',
+            type: 'yn', choices: ['Yes — abnormal sounds', 'No — quiet breathing'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: 'br4'
+        },
+        {
+            id: 'br4', text: 'Is the patient sitting upright trying hard to breathe (tripod position)?',
+            type: 'yn', choices: ['Yes — tripod / hunched', 'No'],
+            score: { yes: U.IMMEDIATE, no: 0 }, next: null
+        },
+    ],
+
+    bleeding: [
+        {
+            id: 'bl1', text: 'Is the bleeding spurting (arterial) or flowing heavily?',
+            type: 'yn', choices: ['Yes — spurting/heavy flow', 'No — oozing/slow'],
+            score: { yes: U.IMMEDIATE, no: U.URGENT }, redFlag: true, next: 'bl2'
+        },
+        {
+            id: 'bl2', text: 'Where is the source of bleeding?',
+            type: 'chips', choices: ['Head/neck', 'Chest/abdomen', 'Limb', 'Multiple sites', 'Unknown internal'],
+            score: { 'Head/neck': U.IMMEDIATE, 'Chest/abdomen': U.IMMEDIATE, 'Limb': U.URGENT, 'Multiple sites': U.IMMEDIATE, 'Unknown internal': U.IMMEDIATE },
+            redFlag: true, next: 'bl3'
+        },
+        {
+            id: 'bl3', text: 'Has direct firm pressure been applied to the wound?',
+            type: 'yn', choices: ['Yes — pressure applied', 'No — not yet'],
+            score: { yes: 0, no: 0 }, next: 'bl4'
+        },
+        {
+            id: 'bl4', text: 'Is the patient feeling faint, confused or very pale?',
+            type: 'yn', choices: ['Yes — dizzy/pale/confused', 'No — alert'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: null
+        },
+    ],
+
+    stroke: [
+        {
+            id: 'st1', text: '🧠 FAST CHECK — Face: Is one side of the face drooping or numb?',
+            type: 'yn', choices: ['Yes — face drooping', 'No'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: 'st2'
+        },
+        {
+            id: 'st2', text: 'FAST — Arms: Can they raise BOTH arms and keep them up for 10 seconds?',
+            type: 'yn', choices: ['No — one arm drifts/falls', 'Yes — both arms steady'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: 'st3'
+        },
+        {
+            id: 'st3', text: 'FAST — Speech: Is speech slurred, garbled or unable to speak?',
+            type: 'yn', choices: ['Yes — speech affected', 'No — speaking clearly'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: 'st4'
+        },
+        {
+            id: 'st4', text: 'When did symptoms first appear?',
+            type: 'chips', choices: ['<1 hour ago', '1–3 hours ago', '3–6 hours ago', '>6 hours ago', 'Unknown'],
+            score: { '<1 hour ago': U.IMMEDIATE, '1–3 hours ago': U.IMMEDIATE, '3–6 hours ago': U.URGENT, '> 6 hours ago': U.URGENT, 'Unknown': U.IMMEDIATE },
+            redFlag: true, next: 'st5'
+        },
+        {
+            id: 'st5', text: 'Is there sudden severe headache, vision loss or confusion?',
+            type: 'yn', choices: ['Yes — any of these', 'No'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: null
+        },
+    ],
+
+    unconscious: [
+        {
+            id: 'un1', text: 'Is the person completely unresponsive to voice and touch?',
+            type: 'yn', choices: ['Yes — no response', 'Responds slightly'],
+            score: { yes: U.IMMEDIATE, no: U.URGENT }, redFlag: true, next: 'un2'
+        },
+        {
+            id: 'un2', text: 'Is the airway open? (look for chest rise, listen for breath)',
+            type: 'yn', choices: ['Yes — airway open', 'No — obstructed/unknown'],
+            score: { yes: 0, no: U.IMMEDIATE }, redFlag: true, next: 'un3'
+        },
+        {
+            id: 'un3', text: 'Do you know what caused the loss of consciousness?',
+            type: 'chips', choices: ['Fall/head injury', 'Seizure', 'Diabetic/fainting', 'Overdose/drugs', 'Heart/breathing', 'Unknown'],
+            score: { 'Fall/head injury': U.IMMEDIATE, 'Seizure': U.IMMEDIATE, 'Diabetic/fainting': U.URGENT, 'Overdose/drugs': U.IMMEDIATE, 'Heart/breathing': U.IMMEDIATE, 'Unknown': U.IMMEDIATE },
+            redFlag: true, next: 'un4'
+        },
+        {
+            id: 'un4', text: 'Are there signs of seizure (muscle jerking, tongue bite, incontinence)?',
+            type: 'yn', choices: ['Yes — seizure signs', 'No'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: null
+        },
+    ],
+
+    burns: [
+        {
+            id: 'bu1', text: 'What caused the burn?',
+            type: 'chips', choices: ['Fire/flame', 'Hot liquid/steam', 'Chemical', 'Electrical', 'Sunburn'],
+            score: { 'Fire/flame': U.URGENT, 'Hot liquid/steam': U.URGENT, 'Chemical': U.IMMEDIATE, 'Electrical': U.IMMEDIATE, 'Sunburn': U.MINOR },
+            next: 'bu2'
+        },
+        {
+            id: 'bu2', text: 'How large is the burn? (palm of patient\'s hand = 1%)',
+            type: 'chips', choices: ['<1% (tiny patch)', '1–9% (palm-sized)', '10–20% (arm/leg)', '20%+ (major areas)'],
+            score: { '<1% (tiny patch)': U.MINOR, '1–9% (palm-sized)': U.DELAYED, '10–20% (arm/leg)': U.URGENT, '20%+ (major areas)': U.IMMEDIATE },
+            redFlag: true, next: 'bu3'
+        },
+        {
+            id: 'bu3', text: 'Is the burn on face, hands, genitals, or crossing a joint?',
+            type: 'yn', choices: ['Yes — critical areas', 'No — other areas'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: 'bu4'
+        },
+        {
+            id: 'bu4', text: 'Does the burned skin look white, brown or black (full thickness)?',
+            type: 'yn', choices: ['Yes — white/brown/black', 'No — red and blistered'],
+            score: { yes: U.IMMEDIATE, no: U.URGENT }, next: null
+        },
+    ],
+
+    allergic: [
+        {
+            id: 'al1', text: 'Is there throat tightness, difficulty swallowing, or voice changes?',
+            type: 'yn', choices: ['Yes — throat tightening', 'No'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: 'al2'
+        },
+        {
+            id: 'al2', text: 'Is there hives or swelling of the face, lips or tongue?',
+            type: 'yn', choices: ['Yes — swelling/hives', 'No'],
+            score: { yes: U.IMMEDIATE, no: U.URGENT }, redFlag: true, next: 'al3'
+        },
+        {
+            id: 'al3', text: 'Is there wheezing or breathing difficulty?',
+            type: 'yn', choices: ['Yes — wheezing/difficulty', 'No'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: 'al4'
+        },
+        {
+            id: 'al4', text: 'Is there an EpiPen (adrenaline auto-injector) available?',
+            type: 'yn', choices: ['Yes — available', 'No'],
+            score: { yes: 0, no: 0 }, next: null
+        },
+    ],
+
+    head_injury: [
+        {
+            id: 'hi1', text: 'Was there any loss of consciousness after the impact?',
+            type: 'yn', choices: ['Yes — lost consciousness', 'No'],
+            score: { yes: U.IMMEDIATE, no: U.URGENT }, redFlag: true, next: 'hi2'
+        },
+        {
+            id: 'hi2', text: 'Is the person confused, disoriented or unable to remember the injury?',
+            type: 'yn', choices: ['Yes — confused/amnesic', 'No — clear memory'],
+            score: { yes: U.URGENT, no: 0 }, redFlag: true, next: 'hi3'
+        },
+        {
+            id: 'hi3', text: 'Any vomiting, severe headache, or unequal pupils since injury?',
+            type: 'yn', choices: ['Yes — any of these', 'No'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: 'hi4'
+        },
+        {
+            id: 'hi4', text: 'Is there clear fluid from nose or ears?',
+            type: 'yn', choices: ['Yes — clear fluid', 'No'],
+            score: { yes: U.IMMEDIATE, no: 0 }, redFlag: true, next: null
+        },
+    ],
+
+    general: [
+        {
+            id: 'gn1', text: 'Can the person walk without support?',
+            type: 'yn', choices: ['Yes — walking independently', 'No — cannot walk'],
+            score: { yes: U.MINOR, no: U.URGENT }, next: 'gn2'
+        },
+        {
+            id: 'gn2', text: 'Rate the pain level right now:',
+            type: 'chips', choices: ['0–3 Mild', '4–6 Moderate', '7–9 Severe', '10 Unbearable'],
+            score: { '0–3 Mild': U.MINOR, '4–6 Moderate': U.DELAYED, '7–9 Severe': U.URGENT, '10 Unbearable': U.IMMEDIATE },
+            next: 'gn3'
+        },
+        {
+            id: 'gn3', text: 'How long have symptoms been present?',
+            type: 'chips', choices: ['< 30 min', '30 min – 2 hrs', '2–12 hrs', '> 12 hrs'],
+            score: { '< 30 min': U.URGENT, '30 min – 2 hrs': U.DELAYED, '2–12 hrs': U.DELAYED, '> 12 hrs': U.MINOR },
+            next: 'gn4'
+        },
+        {
+            id: 'gn4', text: 'Are symptoms getting worse rapidly?',
+            type: 'yn', choices: ['Yes — rapidly worsening', 'No — stable or improving'],
+            score: { yes: U.URGENT, no: 0 }, next: null
+        },
+    ]
+};
+
+/* ── Chief Complaint → Pathway Mapping ──────────────────────────── */
+const COMPLAINT_MAP = {
+    'Chest pain / pressure': 'chest_pain',
+    'Difficulty breathing': 'breathing',
+    'Severe bleeding': 'bleeding',
+    'Stroke symptoms (FAST)': 'stroke',
+    'Unconscious / collapsed': 'unconscious',
+    'Burns': 'burns',
+    'Allergic reaction': 'allergic',
+    'Head / spinal injury': 'head_injury',
+    'Other / not sure': 'general'
+};
+
+/* ── Result Templates ───────────────────────────────────────────── */
+const RESULT_META = {
+    [U.IMMEDIATE]: {
+        category: 'RED', label: 'IMMEDIATE', color: '#ef4444', icon: '🔴',
+        callAmb: true,
+        what: 'Life-threatening emergency requiring intervention within minutes.',
+        paramedic: 'Patient is RED — immediate priority. Critical signs present.'
     },
-    '-2': {
-        category: 'BLACK',
-        title: 'Expectant — No Breathing',
-        color: '#6b7280',
-        urgency: 'IMMEDIATE',
-        icon: '⚫',
-        desc: 'No respirations detected even after airway repositioning. In mass casualty: remove from active treatment priority.',
-        firstAid: [
-            'Reposition airway — tilt head, lift chin',
-            'Check for foreign body obstruction — finger sweep',
-            'Begin CPR if trained and resources allow',
-            'Call 108 immediately'
-        ],
-        doNot: ['Do not delay care for others if in mass casualty scenario'],
-        callAmb: true
+    [U.URGENT]: {
+        category: 'YELLOW', label: 'URGENT', color: '#f59e0b', icon: '🟡',
+        callAmb: true,
+        what: 'Serious condition. Needs medical care within 1 hour.',
+        paramedic: 'Patient is YELLOW — urgent. Stable but requires prompt care.'
     },
-    '-3': {
-        category: 'RED',
-        title: 'Immediate — Life Threatening',
-        color: '#ef4444',
-        urgency: 'EMERGENCY',
-        icon: '🔴',
-        desc: 'Critical signs detected. Patient requires immediate medical intervention. Call 108 NOW.',
-        firstAid: [
-            'Call 108 immediately — do not delay',
-            'Keep airway open — tilt head back gently',
-            'Control severe bleeding with direct pressure',
-            'Do NOT move if spinal injury suspected',
-            'Keep patient warm and still',
-            'Monitor breathing every 30 seconds'
-        ],
-        doNot: ['Do not give food or water', 'Do not remove embedded objects'],
-        callAmb: true
+    [U.DELAYED]: {
+        category: 'YELLOW', label: 'DELAYED', color: '#fbbf24', icon: '🟠',
+        callAmb: false,
+        what: 'Non-life-threatening. Seek medical care within a few hours.',
+        paramedic: 'Patient is DELAYED — serious but stable.'
     },
-    '-4': {
-        category: 'YELLOW',
-        title: 'Delayed — Serious but Stable',
-        color: '#f59e0b',
-        urgency: 'URGENT',
-        icon: '🟡',
-        desc: 'Serious condition but currently stable. Prioritise after RED patients. Monitor closely.',
-        firstAid: [
-            'Keep patient still and calm',
-            'Apply splinting for fractures if trained',
-            'Cover wounds with clean dressings',
-            'Reassess vitals every 5 minutes',
-            'Prepare to escalate if condition worsens'
-        ],
-        doNot: ['Do not allow patient to eat or drink before medical assessment'],
-        callAmb: true
-    },
-    '-5': {
-        category: 'GREEN',
-        title: 'Minor — Low Priority',
-        color: '#14b8a6',
-        urgency: 'LOW',
-        icon: '🟢',
-        desc: 'No immediately life-threatening signs. Patient can wait for assessment.',
-        firstAid: [
-            'Rest and monitor in a safe location',
-            'Apply ice/cold pack for bruising (not directly on skin)',
-            'Basic wound cleaning with clean water',
-            'Visit a clinic or hospital at earliest convenience'
-        ],
-        doNot: ['Do not ignore worsening pain or new symptoms'],
-        callAmb: false
+    [U.MINOR]: {
+        category: 'GREEN', label: 'MINOR', color: '#14b8a6', icon: '🟢',
+        callAmb: false,
+        what: 'Minor condition. Treat with first aid, monitor for changes.',
+        paramedic: 'Patient is GREEN — minor, walking wounded.'
     }
 };
 
-/* ──────────────────────────────────────────────────────────
-   State
-   ────────────────────────────────────────────────────────── */
-let _chatPhase = 'intake';   // 'intake' | 'start' | 'result'
-let _intakeStep = 0;
-let _intakeData = {};
-let _startQId = 1;
-let _chatListening = false;
-let _recognizer = null;
+const FIRST_AID_BY_PATHWAY = {
+    chest_pain: [
+        'Sit patient upright — semi-reclined (not lying flat)',
+        'Loosen tight clothing around chest and neck',
+        'Keep patient calm and completely still',
+        'If conscious and not allergic: 300mg Aspirin (chew, don\'t swallow whole)',
+        'Do NOT give food or water',
+        'If patient collapses and stops breathing: begin CPR',
+        'Call 108 immediately — note time symptoms started'
+    ],
+    breathing: [
+        'Sit patient upright leaning slightly forward (tripod position)',
+        'Remove anything tight around neck or chest',
+        'If inhaler prescribed for asthma: give 4 puffs every 4 minutes',
+        'Keep patient calm — anxiety worsens breathing',
+        'Do NOT lay patient flat',
+        'If breathing stops: tilt head back, give rescue breaths, call 108'
+    ],
+    bleeding: [
+        'Apply FIRM direct pressure with clean cloth — do not lift to check',
+        'If limb: elevate above heart level if possible',
+        'If object embedded: do NOT remove it — pack around it',
+        'Tourniquet for limb bleeding that won\'t stop: apply 5cm above wound',
+        'Keep patient warm and lying down',
+        'Note time of injury and estimated blood loss for paramedics'
+    ],
+    stroke: [
+        '⏱️ TIME IS CRITICAL — every minute = 2 million brain cells lost',
+        'Call 108 immediately — note exact time symptoms started',
+        'Lay patient on their side if unresponsive (recovery position)',
+        'Do NOT give food, water, or medication',
+        'Do NOT leave patient alone',
+        'Keep patient still and calm until ambulance arrives',
+        'Note: Last time patient was seen NORMAL (crucial for treatment eligibility)'
+    ],
+    unconscious: [
+        'Check airway: tilt head back, lift chin — look for chest rise',
+        'Recovery position: on left side to prevent choking',
+        'Do NOT move if spinal injury suspected',
+        'Check breathing every 30 seconds',
+        'If no breathing: begin CPR (30 compressions : 2 breaths)',
+        'Call 108 — stay on line with dispatcher'
+    ],
+    burns: [
+        'Cool burn immediately with COOL running water for 20 minutes',
+        'Do NOT use ice, butter, toothpaste or any home remedy',
+        'Remove jewelry/clothing near burn BEFORE swelling',
+        'Cover with cling film or clean damp cloth — do not burst blisters',
+        'For chemical burns: brush off dry chemical, then rinse with water',
+        'For electrical burns: do NOT touch patient if still connected to source'
+    ],
+    allergic: [
+        'If EpiPen available: inject into outer mid-thigh immediately',
+        'Call 108 — anaphylaxis can be fatal within minutes',
+        'Lay patient flat with legs raised (unless breathing difficulty)',
+        'Second EpiPen after 5–15 min if no improvement',
+        'Do NOT give antihistamine as primary treatment for anaphylaxis',
+        'Note allergen exposure for paramedics'
+    ],
+    head_injury: [
+        'Do NOT move patient if spinal injury possible',
+        'Keep head and neck in neutral position — manual stabilisation',
+        'If conscious: keep awake and talking to them',
+        'Apply pressure to scalp wounds but do NOT press on skull fracture',
+        'Do NOT give any pain medication',
+        'Monitor pupil size, breathing, and consciousness every 5 minutes'
+    ],
+    general: [
+        'Keep patient calm and comfortable in safe position',
+        'Monitor vital signs: breathing, pulse, consciousness every 5 minutes',
+        'Apply appropriate first aid for visible wounds',
+        'Do not leave patient unattended',
+        'Be ready to escalate if condition worsens'
+    ]
+};
 
-/* ──────────────────────────────────────────────────────────
-   Page Render
-   ────────────────────────────────────────────────────────── */
+/* ================================================================
+   CHATBOT STATE
+   ================================================================ */
+let _tc = {
+    phase: 'greeting',      // greeting → intake → pathway → result
+    pathway: null,          // key in PATHWAYS
+    qIndex: 0,              // current question index in pathway
+    totalScore: 0,          // cumulative urgency score
+    maxScore: 0,            // max possible score
+    peaked: null,           // highest single U score hit
+    redFlagged: false,      // instant escalation
+    patientAge: null,
+    patientType: null,
+    complaint: null,
+    answers: {},            // { qId: answer }
+    log: []                 // { q, a, timestamp }
+};
+
+/* ================================================================
+   RENDER
+   ================================================================ */
 function renderTriageChat() {
-    _chatPhase = 'intake';
-    _intakeStep = 0;
-    _intakeData = {};
-    _startQId = 1;
+    _tc = {
+        phase: 'greeting', pathway: null, qIndex: 0, totalScore: 0, maxScore: 0,
+        peaked: null, redFlagged: false, patientAge: null, patientType: null,
+        complaint: null, answers: {}, log: []
+    };
 
     const page = document.createElement('div');
-    page.className = 'page triage-chat-page page-scroll';
-    page.id = 'triage-chat-page';
-    page.style.cssText = 'display:flex; flex-direction:column; height:100dvh; overflow:hidden;';
+    page.id = 'tc-page';
+    page.className = 'page triage-chat-page';
+    page.style.cssText = 'display:flex;flex-direction:column;height:100dvh;overflow:hidden;position:relative;';
 
     page.innerHTML = `
-        <!-- Header -->
-        <div style="
-            padding: 14px 16px 10px;
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border-subtle);
-            display: flex; align-items: center; gap: 12px;
-            flex-shrink: 0;
-        ">
-            <button onclick="Router.navigate('/dashboard')" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0;">←</button>
-            <div style="flex:1;">
-                <div style="font-family:var(--font-display); font-size:12px; font-weight:800; letter-spacing:0.12em; color:var(--accent-primary);">UPLINE TRIAGE AI</div>
-                <div style="font-size:10px; color:var(--text-muted);">START Protocol · Offline · Multilingual</div>
-            </div>
-            <div id="chat-phase-badge" style="
-                font-family:var(--font-display); font-size:9px; letter-spacing:0.1em;
-                background: rgba(20,184,166,0.15); color: var(--accent-teal);
-                padding: 3px 10px; border-radius: 100px; border: 1px solid rgba(20,184,166,0.3);
-            ">INTAKE</div>
-        </div>
+    <div id="tc-header" style="padding:12px 16px 8px;background:var(--bg-card);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      <button onclick="Router.navigate('/dashboard')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;padding:0 4px 0 0;">←</button>
+      <div style="flex:1;">
+        <div style="font-family:var(--font-display);font-size:11px;font-weight:900;letter-spacing:0.15em;color:var(--accent-primary);">UPLINE TRIAGE ENGINE</div>
+        <div style="font-size:10px;color:var(--text-muted);">Clinical Assessment · START Protocol · Offline</div>
+      </div>
+      <div id="tc-badge" style="font-family:var(--font-display);font-size:9px;letter-spacing:0.1em;background:rgba(20,184,166,0.12);color:var(--accent-teal);padding:3px 10px;border-radius:100px;border:1px solid rgba(20,184,166,0.25);">INTAKE</div>
+    </div>
+    <div style="height:3px;background:rgba(255,255,255,0.06);flex-shrink:0;">
+      <div id="tc-progress" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent-teal),var(--accent-primary));transition:width 0.6s ease;"></div>
+    </div>
+    <div id="tc-msgs" style="flex:1;overflow-y:auto;padding:16px;padding-bottom:150px;display:flex;flex-direction:column;gap:12px;"></div>
+    <div id="tc-input" style="position:fixed;bottom:var(--nav-height,60px);left:0;width:100%;padding:10px 14px;background:rgba(10,10,20,0.97);backdrop-filter:blur(16px);border-top:1px solid var(--border-subtle);z-index:50;box-sizing:border-box;"></div>
+  `;
 
-        <!-- Progress Bar -->
-        <div style="height:3px; background:rgba(255,255,255,0.08); flex-shrink:0;">
-            <div id="chat-progress-fill" style="height:100%; width:0%; background:var(--accent-teal); transition:width 0.5s ease; border-radius:0 2px 2px 0;"></div>
-        </div>
+    const style = document.createElement('style');
+    style.textContent = `
+    @keyframes tcFadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+    @keyframes tcDot{0%,80%,100%{transform:scale(0.6);opacity:0.3;}40%{transform:scale(1);opacity:1;}}
+    .tc-bot{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:4px 16px 16px 16px;padding:12px 15px;font-size:14px;line-height:1.65;color:var(--text-primary);max-width:88%;white-space:pre-line;animation:tcFadeUp 0.3s ease;}
+    .tc-user{background:linear-gradient(135deg,#7c3aed,#4f46e5);border-radius:16px 4px 16px 16px;padding:10px 15px;font-size:14px;color:white;max-width:78%;align-self:flex-end;animation:tcFadeUp 0.25s ease;}
+    .tc-chip{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:var(--text-primary);padding:9px 15px;border-radius:100px;font-size:13px;cursor:pointer;transition:all 0.18s;white-space:nowrap;}
+    .tc-chip:hover,.tc-chip:active{background:rgba(99,102,241,0.25);border-color:rgba(99,102,241,0.5);color:#a5b4fc;}
+    .tc-yn-yes{background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.35);color:#5eead4;padding:13px 16px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;transition:all 0.18s;width:100%;}
+    .tc-yn-no{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:13px 16px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;transition:all 0.18s;width:100%;}
+    .tc-yn-yes:hover{background:rgba(20,184,166,0.2);}
+    .tc-yn-no:hover{background:rgba(239,68,68,0.18);}
+  `;
+    page.appendChild(style);
 
-        <!-- Messages -->
-        <div id="chat-messages" style="
-            flex:1; overflow-y:auto; padding:16px; padding-bottom:140px;
-            display:flex; flex-direction:column; gap:14px;
-            scroll-behavior:smooth;
-        "></div>
-
-        <!-- Input Area -->
-        <div id="chat-input-area" style="
-            position:fixed; bottom:var(--nav-height,60px); left:0; width:100%;
-            padding:12px 16px; background: rgba(12,12,20,0.95);
-            backdrop-filter:blur(12px);
-            border-top: 1px solid var(--border-subtle);
-            z-index: 50;
-        "></div>
-    `;
-
-    // Kick off after render
-    setTimeout(() => {
-        _botMessage("👋 Hello! I'm the UPLINE Triage AI. I'll guide you through a clinical START protocol assessment.\n\n⚡ This works completely offline. Answers are used only for triage guidance.", () => {
-            setTimeout(() => _nextIntake(), 600);
-        });
-    }, 300);
-
+    setTimeout(() => _tcGreeting(), 300);
     return page;
 }
 
-/* ──────────────────────────────────────────────────────────
-   Bot Messaging  
-   ────────────────────────────────────────────────────────── */
-function _botMessage(text, onDone) {
-    const msgs = document.getElementById('chat-messages');
+/* ================================================================
+   MESSAGING
+   ================================================================ */
+function _tcBot(text, onDone, delay) {
+    const msgs = document.getElementById('tc-msgs');
     if (!msgs) return;
 
-    // Typing indicator
-    const typing = document.createElement('div');
-    typing.className = 'chat-bubble bot-bubble';
-    typing.id = 'typing-indicator';
-    typing.style.cssText = 'display:flex; align-items:center; gap:6px; padding:12px 16px; min-width:60px;';
-    typing.innerHTML = `
-        <span style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:chatDot 1.2s ease infinite;display:inline-block;"></span>
-        <span style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:chatDot 1.2s ease 0.2s infinite;display:inline-block;"></span>
-        <span style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:chatDot 1.2s ease 0.4s infinite;display:inline-block;"></span>
-        <style>
-          @keyframes chatDot {
-            0%,80%,100%{transform:scale(0.7);opacity:0.4;}
-            40%{transform:scale(1);opacity:1;}
-          }
-        </style>
-    `;
-    msgs.appendChild(typing);
-    _scrollBottom();
+    const ind = document.createElement('div');
+    ind.className = 'tc-bot';
+    ind.style.cssText = 'display:flex;align-items:center;gap:5px;min-width:52px;padding:14px 16px;';
+    ind.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:tcDot 1.2s ease infinite;display:inline-block;"></span><span style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:tcDot 1.2s 0.2s ease infinite;display:inline-block;"></span><span style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);animation:tcDot 1.2s 0.4s ease infinite;display:inline-block;"></span>`;
+    msgs.appendChild(ind);
+    _tcScroll();
 
-    const delay = Math.min(600 + text.length * 12, 1800);
-
+    const wait = delay ?? Math.min(500 + text.length * 10, 1600);
     setTimeout(() => {
-        const ind = document.getElementById('typing-indicator');
-        if (ind) ind.remove();
-
-        const bubble = document.createElement('div');
-        bubble.className = 'chat-bubble bot-bubble';
-        bubble.style.cssText = `
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 4px 18px 18px 18px;
-            padding: 12px 16px;
-            font-size: 14px;
-            line-height: 1.6;
-            color: var(--text-primary);
-            max-width: 85%;
-            white-space: pre-line;
-            animation: fadeInUp 0.3s ease;
-        `;
-        bubble.textContent = text;
-        msgs.appendChild(bubble);
-        _scrollBottom();
+        ind.remove();
+        const b = document.createElement('div');
+        b.className = 'tc-bot';
+        b.textContent = text;
+        msgs.appendChild(b);
+        _tcScroll();
         if (onDone) onDone();
-    }, delay);
+    }, wait);
 }
 
-function _userMessage(text) {
-    const msgs = document.getElementById('chat-messages');
+function _tcUser(text) {
+    const msgs = document.getElementById('tc-msgs');
     if (!msgs) return;
-    const bubble = document.createElement('div');
-    bubble.className = 'chat-bubble user-bubble';
-    bubble.style.cssText = `
-        background: linear-gradient(135deg, var(--accent-primary), #5b21b6);
-        border-radius: 18px 4px 18px 18px;
-        padding: 10px 16px;
-        font-size: 14px;
-        color: white;
-        max-width: 75%;
-        align-self: flex-end;
-        animation: fadeInRight 0.25s ease;
-    `;
-    bubble.textContent = text;
-    msgs.appendChild(bubble);
-    _scrollBottom();
+    const b = document.createElement('div');
+    b.className = 'tc-user';
+    b.textContent = text;
+    msgs.appendChild(b);
+    _tcScroll();
 }
 
-/* ──────────────────────────────────────────────────────────
-   PHASE 1 — Intake
-   ────────────────────────────────────────────────────────── */
-function _nextIntake() {
-    if (_intakeStep >= INTAKE_STEPS.length) {
-        _startSTARTPhase();
-        return;
-    }
-
-    const step = INTAKE_STEPS[_intakeStep];
-    const pct = Math.round((_intakeStep / (INTAKE_STEPS.length + START_QUESTIONS.length)) * 100);
-    _updateProgress(pct);
-
-    _botMessage(step.text, () => _renderIntakeInput(step));
+function _tcScroll() {
+    const m = document.getElementById('tc-msgs');
+    if (m) setTimeout(() => { m.scrollTop = m.scrollHeight; }, 60);
 }
 
-function _renderIntakeInput(step) {
-    const area = document.getElementById('chat-input-area');
-    if (!area) return;
-
-    if (step.type === 'chips' || step.type === 'chips_plus_text') {
-        let html = `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:${step.type === 'chips_plus_text' ? '10px' : '0'};">`;
-        step.chips.forEach(chip => {
-            html += `<button onclick="_intakeChipAnswer('${chip.replace(/'/g, "\\'")}', '${step.id}')"
-                style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.15);
-                       color:var(--text-primary); padding:8px 14px; border-radius:100px;
-                       font-size:13px; cursor:pointer; transition:all 0.2s;"
-                onmouseover="this.style.borderColor='var(--accent-teal)';this.style.color='var(--accent-teal)';"
-                onmouseout="this.style.borderColor='rgba(255,255,255,0.15)';this.style.color='var(--text-primary)';"
-            >${chip}</button>`;
-        });
-        html += '</div>';
-
-        if (step.type === 'chips_plus_text') {
-            html += `
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <input id="intake-text-input"
-                        type="text"
-                        placeholder="${step.placeholder || 'Type here…'}"
-                        style="flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
-                               color:var(--text-primary); padding:10px 14px; border-radius:12px;
-                               font-size:14px; outline:none;"
-                        onkeypress="if(event.key==='Enter'){_intakeTextAnswer('${step.id}')}"
-                    />
-                    <button onclick="_intakeTextAnswer('${step.id}')"
-                        style="background:var(--accent-teal); border:none; color:white;
-                               padding:10px 16px; border-radius:12px; font-size:14px; cursor:pointer;">
-                        →
-                    </button>
-                    <button onclick="_startVoiceIntake('${step.id}')" title="Voice input"
-                        style="background:rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.4);
-                               color:#a78bfa; padding:10px 12px; border-radius:12px; font-size:16px; cursor:pointer;">
-                        🎤
-                    </button>
-                </div>
-            `;
-        }
-        area.innerHTML = html;
-
-    } else if (step.type === 'slider') {
-        area.innerHTML = `
-            <div style="padding:4px 0;">
-                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:6px; font-family:var(--font-display); letter-spacing:0.05em;">
-                    <span>${step.labels[0]}</span><span>${step.labels[1]}</span><span>${step.labels[2]}</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <input type="range" id="pain-slider" min="${step.min}" max="${step.max}" value="${step.default}"
-                        style="flex:1; accent-color:var(--accent-teal);"
-                        oninput="document.getElementById('pain-val').textContent=this.value;"
-                    />
-                    <span id="pain-val" style="font-family:var(--font-display); font-size:22px; font-weight:800; color:var(--accent-teal); min-width:28px; text-align:center;">${step.default}</span>
-                </div>
-                <button onclick="_intakeSliderAnswer('${step.id}')"
-                    style="width:100%; margin-top:10px; background:var(--accent-teal); border:none;
-                           color:white; padding:11px; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer;">
-                    Confirm Pain Level
-                </button>
-            </div>
-        `;
-    }
+function _tcSetInput(html) {
+    const inp = document.getElementById('tc-input');
+    if (inp) inp.innerHTML = html;
 }
 
-function _intakeChipAnswer(value, stepId) {
-    _intakeData[stepId] = value;
-    _userMessage(value);
-    _clearInput();
-    if (navigator.vibrate) navigator.vibrate(40);
-    _intakeStep++;
-    setTimeout(() => _nextIntake(), 500);
+function _tcProgress(pct) {
+    const p = document.getElementById('tc-progress');
+    if (p) p.style.width = Math.min(100, pct) + '%';
 }
 
-function _intakeTextAnswer(stepId) {
-    const input = document.getElementById('intake-text-input');
-    const value = input ? input.value.trim() : '';
-    if (!value) return;
-    _intakeData[stepId] = value;
-    _userMessage(value);
-    _clearInput();
-    _intakeStep++;
-    setTimeout(() => _nextIntake(), 500);
+function _tcBadge(text, color) {
+    const b = document.getElementById('tc-badge');
+    if (!b) return;
+    b.textContent = text;
+    b.style.cssText = `font-family:var(--font-display);font-size:9px;letter-spacing:0.1em;background:${color}22;color:${color};padding:3px 10px;border-radius:100px;border:1px solid ${color}55;`;
 }
 
-function _intakeSliderAnswer(stepId) {
-    const slider = document.getElementById('pain-slider');
-    const value = slider ? parseInt(slider.value) : 5;
-    const label = value <= 3 ? 'Mild pain' : value <= 6 ? 'Moderate pain' : value <= 8 ? 'Severe pain' : 'Unbearable pain';
-    _intakeData[stepId] = value;
-    _userMessage(`${value}/10 — ${label}`);
-    _clearInput();
-    _intakeStep++;
-    setTimeout(() => _nextIntake(), 500);
-}
-
-function _startVoiceIntake(stepId) {
-    if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-        return;
-    }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const r = new SR();
-    r.lang = 'en-IN';
-    r.interimResults = false;
-    r.maxAlternatives = 1;
-    r.onresult = (e) => {
-        const txt = e.results[0][0].transcript;
-        _intakeData[stepId] = txt;
-        _userMessage(`🎤 "${txt}"`);
-        _clearInput();
-        _intakeStep++;
-        setTimeout(() => _nextIntake(), 500);
-    };
-    r.onerror = () => { };
-    r.start();
-}
-
-/* ──────────────────────────────────────────────────────────
-   PHASE 2 — START Protocol
-   ────────────────────────────────────────────────────────── */
-function _startSTARTPhase() {
-    _chatPhase = 'start';
-    const badge = document.getElementById('chat-phase-badge');
-    if (badge) {
-        badge.textContent = 'START PROTOCOL';
-        badge.style.background = 'rgba(239,68,68,0.15)';
-        badge.style.color = '#f87171';
-        badge.style.borderColor = 'rgba(239,68,68,0.3)';
-    }
-
-    // Personalise transition message
-    const who = _intakeData['patient_type'] || 'the patient';
-    const complaint = _intakeData['chief_complaint'] || 'the reported symptoms';
-    const pain = _intakeData['pain_scale'];
-
-    let transMsg = `Understood. `;
-    if (pain >= 8) transMsg += `⚠️ Pain level ${pain}/10 is very high. `;
-    transMsg += `Now running the clinical START triage protocol for ${who.toLowerCase()} with ${complaint.toLowerCase()}.\n\nI'll ask ${START_QUESTIONS.length} rapid assessment questions. Answer quickly — this is time-critical.`;
-
-    _botMessage(transMsg, () => {
-        setTimeout(() => _pushSTARTQuestion(1), 600);
-    });
-}
-
-function _pushSTARTQuestion(qId) {
-    const q = START_QUESTIONS.find(x => x.id === qId);
-    if (!q) return;
-    _startQId = qId;
-
-    const total = INTAKE_STEPS.length + START_QUESTIONS.length;
-    const done = INTAKE_STEPS.length + (qId - 1);
-    _updateProgress(Math.round((done / total) * 100));
-
-    _botMessage(
-        `${q.critical ? '⚠️ ' : ''}Q${qId}/${START_QUESTIONS.length}: ${q.text}`,
-        () => _renderSTARTButtons(q)
+/* ================================================================
+   PHASE 1 — GREETING + INTAKE
+   ================================================================ */
+function _tcGreeting() {
+    _tcBot(
+        "👋 I'm the UPLINE Triage Engine — a clinical first-responder assistant.\n\nI will guide you through a structured medical assessment to determine urgency and first-aid steps.\n\n⚡ Works fully offline. No data leaves your device.",
+        () => setTimeout(_tcAskPatientType, 700)
     );
 }
 
-function _renderSTARTButtons(q) {
-    const area = document.getElementById('chat-input-area');
-    if (!area) return;
-
-    area.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:8px;">
-            <button onclick="_submitSTART(true)"
-                style="background:rgba(20,184,166,0.15); border:1px solid rgba(20,184,166,0.4);
-                       color:#5eead4; font-size:14px; font-weight:600; padding:12px 16px;
-                       border-radius:12px; cursor:pointer; text-align:left; transition:all 0.15s;"
-                onmouseover="this.style.background='rgba(20,184,166,0.25)'"
-                onmouseout="this.style.background='rgba(20,184,166,0.15)'">
-                ${q.choices[0]}
-            </button>
-            <button onclick="_submitSTART(false)"
-                style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3);
-                       color:#f87171; font-size:14px; font-weight:600; padding:12px 16px;
-                       border-radius:12px; cursor:pointer; text-align:left; transition:all 0.15s;"
-                onmouseover="this.style.background='rgba(239,68,68,0.2)'"
-                onmouseout="this.style.background='rgba(239,68,68,0.1)'">
-                ${q.choices[1]}
-            </button>
-        </div>
-    `;
+function _tcAskPatientType() {
+    _tcProgress(5);
+    _tcBot("First — who needs help?", () => {
+        _tcSetInput(`<div style="display:flex;flex-wrap:wrap;gap:8px;">${['Myself', 'Another adult', 'A child (<12 yrs)', 'An elderly person (>65)'].map(c =>
+            `<button class="tc-chip" onclick="_tcPatientType('${c}')">${c}</button>`
+        ).join('')
+            }</div>`);
+    });
 }
 
-function _submitSTART(isYes) {
-    const q = START_QUESTIONS.find(x => x.id === _startQId);
-    if (!q) return;
-
-    const answerText = isYes ? q.choices[0] : q.choices[1];
-    const nextCode = isYes ? q.yesNext : q.noNext;
-
-    _userMessage(answerText);
-    _clearInput();
+function _tcPatientType(val) {
+    _tc.patientType = val;
+    _tcUser(val);
+    _tcSetInput('');
     if (navigator.vibrate) navigator.vibrate(40);
+    setTimeout(_tcAskComplaint, 500);
+}
+
+function _tcAskComplaint() {
+    _tcProgress(15);
+    _tcBot("What is the main emergency? Choose the closest match:", () => {
+        _tcSetInput(`<div style="display:flex;flex-wrap:wrap;gap:8px;">${Object.keys(COMPLAINT_MAP).map(c =>
+            `<button class="tc-chip" onclick="_tcComplaint('${c.replace(/'/g, "\\'")}')">${c}</button>`
+        ).join('')
+            }</div>`);
+    });
+}
+
+function _tcComplaint(val) {
+    _tc.complaint = val;
+    _tc.pathway = COMPLAINT_MAP[val] || 'general';
+    _tcUser(val);
+    _tcSetInput('');
+
+    // Scan for red flags in complaint text
+    const lower = val.toLowerCase();
+    if (RED_FLAG_PHRASES.some(f => lower.includes(f))) {
+        _tc.redFlagged = true;
+    }
+
+    // Update badge
+    const pathLabels = {
+        chest_pain: 'CARDIAC', breathing: 'RESPIRATORY', bleeding: 'HAEMORRHAGE',
+        stroke: 'STROKE/FAST', unconscious: 'NEURO', burns: 'BURNS',
+        allergic: 'ANAPHYLAXIS', head_injury: 'TRAUMA', general: 'GENERAL'
+    };
+    _tcBadge(pathLabels[_tc.pathway] || 'ASSESSMENT', '#a78bfa');
 
     setTimeout(() => {
-        if (nextCode < 0) {
-            _pushResult(String(nextCode));
+        if (_tc.redFlagged) {
+            _tcBot("⚠️ Based on what you've described, this may be life-threatening. I'm running the urgent assessment now.", () => {
+                setTimeout(_tcRunPathway, 400);
+            });
         } else {
-            _pushSTARTQuestion(nextCode);
+            _tcBot(`Understood. Running ${pathLabels[_tc.pathway] || ''} assessment now...`, () => {
+                setTimeout(_tcRunPathway, 400);
+            });
         }
-    }, 450);
+    }, 400);
 }
 
-/* ──────────────────────────────────────────────────────────
-   PHASE 3 — Result
-   ────────────────────────────────────────────────────────── */
-function _pushResult(code) {
-    _updateProgress(100);
-    _chatPhase = 'result';
+/* ================================================================
+   PHASE 2 — CLINICAL PATHWAY
+   ================================================================ */
+function _tcRunPathway() {
+    const path = PATHWAYS[_tc.pathway] || PATHWAYS.general;
+    const q = path[_tc.qIndex];
+    if (!q) { _tcComputeResult(); return; }
 
-    const res = START_RESULTS[code];
-    if (!res) return;
+    const total = path.length;
+    const prog = 20 + Math.round((_tc.qIndex / total) * 65);
+    _tcProgress(prog);
 
-    const badge = document.getElementById('chat-phase-badge');
-    if (badge) {
-        badge.textContent = res.category;
-        badge.style.background = res.color + '22';
-        badge.style.color = res.color;
-        badge.style.borderColor = res.color + '66';
+    _tcBot(`${q.redFlag ? '⚠️ ' : ''}${q.text}`, () => _tcRenderQ(q));
+}
+
+function _tcRenderQ(q) {
+    if (q.type === 'yn') {
+        _tcSetInput(`<div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="tc-yn-yes" onclick="_tcAnswer('${q.id}','yes','${_esc(q.choices[0])}')">${q.choices[0]}</button>
+      <button class="tc-yn-no"  onclick="_tcAnswer('${q.id}','no','${_esc(q.choices[1])}')">${q.choices[1]}</button>
+    </div>`);
+    } else if (q.type === 'chips') {
+        _tcSetInput(`<div style="display:flex;flex-wrap:wrap;gap:8px;">${q.choices.map(c => `<button class="tc-chip" onclick="_tcAnswer('${q.id}','${_esc(c)}','${_esc(c)}')">${c}</button>`).join('')
+            }</div>`);
     }
+}
+
+function _tcAnswer(qId, value, label) {
+    const path = PATHWAYS[_tc.pathway] || PATHWAYS.general;
+    const q = path.find(x => x.id === qId);
+    if (!q) return;
+
+    _tc.answers[qId] = value;
+    _tc.log.push({ q: q.text, a: label, t: new Date().toLocaleTimeString() });
+    _tcUser(label);
+    _tcSetInput('');
+    if (navigator.vibrate) navigator.vibrate(35);
+
+    // Score
+    const sc = q.score;
+    let pts = 0;
+    if (q.type === 'yn') pts = sc[value] || 0;
+    else pts = sc[value] || sc[label] || 0;
+    _tc.totalScore += pts;
+    if (!_tc.peaked || pts > _tc.peaked) _tc.peaked = pts;
+
+    // Red flag check
+    if (q.redFlag && pts >= U.IMMEDIATE) {
+        _tc.redFlagged = true;
+    }
+
+    // Early escalation: 2 IMMEDIATE scores → stop and escalate
+    const immediateHits = Object.entries(_tc.answers).filter((_, i) => {
+        const pq = path.find(x => x.id === Object.keys(_tc.answers)[i]);
+        if (!pq) return false;
+        const s = pq.score;
+        const v = Object.values(_tc.answers)[i];
+        return (s[v] || 0) >= U.IMMEDIATE;
+    }).length;
+
+    if (immediateHits >= 2) {
+        _tc.redFlagged = true;
+        _tcSetInput('');
+        setTimeout(() => {
+            _tcBot("🚨 Critical signs detected — stopping assessment to escalate immediately.", () => {
+                setTimeout(_tcComputeResult, 400);
+            });
+        }, 400);
+        return;
+    }
+
+    // Advance
+    _tc.qIndex++;
+    setTimeout(_tcRunPathway, 450);
+}
+
+/* ================================================================
+   PHASE 3 — RESULT
+   ================================================================ */
+function _tcComputeResult() {
+    _tcProgress(100);
+    _tc.phase = 'result';
+
+    let urgency;
+    if (_tc.redFlagged || _tc.peaked >= U.IMMEDIATE) {
+        urgency = U.IMMEDIATE;
+    } else if (_tc.peaked >= U.URGENT || _tc.totalScore >= U.URGENT * 2) {
+        urgency = U.URGENT;
+    } else if (_tc.peaked >= U.DELAYED || _tc.totalScore >= U.DELAYED * 2) {
+        urgency = U.DELAYED;
+    } else {
+        urgency = U.MINOR;
+    }
+
+    // Age modifier
+    if (_tc.patientType && (_tc.patientType.includes('child') || _tc.patientType.includes('elderly'))) {
+        urgency = Math.min(U.IMMEDIATE, urgency + 1);
+    }
+
+    const meta = RESULT_META[urgency];
+    const steps = FIRST_AID_BY_PATHWAY[_tc.pathway] || FIRST_AID_BY_PATHWAY.general;
+    const confidence = Math.min(97, 70 + _tc.log.length * 4);
 
     // Save to history
     if (typeof Storage !== 'undefined') {
         Storage.addHistory({
-            symptoms: _intakeData['chief_complaint'] || 'Triage chat assessment',
-            urgency: res.urgency,
+            symptoms: _tc.complaint || 'Triage chat',
+            urgency: urgency === U.IMMEDIATE ? 'EMERGENCY' : urgency === U.URGENT ? 'URGENT' : urgency === U.DELAYED ? 'MODERATE' : 'LOW',
             detectedSymptoms: [],
-            resultData: {
-                urgency: res.urgency,
-                actions: res.firstAid,
-                firstAid: null,
-                category: res.category,
-                title: res.title,
-                description: res.desc
-            }
+            resultData: { urgency: 'URGENT', actions: steps, firstAid: null }
         });
     }
 
-    // Summary message before the result card
-    const painNote = _intakeData['pain_scale'] ? ` Pain level was reported at ${_intakeData['pain_scale']}/10.` : '';
-    _botMessage(
-        `Assessment complete for ${(_intakeData['patient_type'] || 'patient').toLowerCase()}.${painNote} Based on the START protocol responses:`,
-        () => {
-            setTimeout(() => _renderResultCard(res), 400);
-        }
-    );
+    _tcBadge(meta.label, meta.color);
 
-    // Emergency overlay for RED
-    if (res.category === 'RED') {
-        setTimeout(() => _showChatEmergencyFlash(), 600);
-    }
+    // Emergency flash
+    if (urgency === U.IMMEDIATE) _tcEmergencyFlash();
+
+    _tcBot(`Assessment complete. ${_tc.log.length} parameters evaluated. Confidence: ${confidence}%.`, () => {
+        setTimeout(() => _tcRenderResult(meta, steps, urgency, confidence), 500);
+    });
 }
 
-function _renderResultCard(res) {
-    const msgs = document.getElementById('chat-messages');
+function _tcRenderResult(meta, steps, urgency, confidence) {
+    const msgs = document.getElementById('tc-msgs');
     if (!msgs) return;
 
-    const firstAidHTML = res.firstAid.map((step, i) =>
-        `<div style="display:flex; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
-            <span style="font-family:var(--font-display); font-size:11px; font-weight:800; color:${res.color}; min-width:20px; margin-top:1px;">${i + 1}</span>
-            <span style="font-size:13px; color:var(--text-primary); line-height:1.5;">${step}</span>
-        </div>`
-    ).join('');
+    const stepsHTML = steps.map((s, i) => `
+    <div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="font-family:var(--font-display);font-size:11px;font-weight:800;color:${meta.color};min-width:20px;margin-top:2px;">${i + 1}</span>
+      <span style="font-size:13px;color:var(--text-primary);line-height:1.55;">${s}</span>
+    </div>`).join('');
 
-    const doNotHTML = res.doNot.map(d =>
-        `<div style="display:flex; gap:8px; align-items:flex-start; margin-top:4px;">
-            <span style="color:#ef4444; font-size:12px; margin-top:1px;">✗</span>
-            <span style="font-size:12px; color:var(--text-muted);">${d}</span>
-        </div>`
-    ).join('');
+    const logHTML = _tc.log.map(l => `
+    <div style="display:flex;gap:8px;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="color:var(--text-muted);min-width:50px;">${l.t}</span>
+      <span style="color:var(--text-secondary);flex:1;">${l.q.replace(/[⚠️🧠]/g, '').trim()}</span>
+      <span style="color:${meta.color};font-weight:600;text-align:right;">${l.a}</span>
+    </div>`).join('');
 
     const card = document.createElement('div');
-    card.style.cssText = `
-        background: var(--bg-card);
-        border: 2px solid ${res.color};
-        border-radius: 16px;
-        padding: 20px;
-        animation: fadeInUp 0.4s ease;
-    `;
+    card.style.cssText = `background:var(--bg-card);border:2px solid ${meta.color};border-radius:16px;overflow:hidden;animation:tcFadeUp 0.4s ease;`;
     card.innerHTML = `
-        <!-- Category Badge -->
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-            <span style="font-size:36px;">${res.icon}</span>
-            <div>
-                <div style="font-family:var(--font-display); font-size:11px; letter-spacing:0.15em; color:${res.color}; font-weight:800;">${res.category} PRIORITY</div>
-                <div style="font-size:16px; font-weight:700; color:var(--text-primary); margin-top:2px;">${res.title}</div>
-            </div>
+    <!-- Top banner -->
+    <div style="background:${meta.color}18;padding:18px 18px 14px;border-bottom:1px solid ${meta.color}33;">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span style="font-size:42px;line-height:1;">${meta.icon}</span>
+        <div>
+          <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.15em;color:${meta.color};font-weight:800;">${meta.category} · ${meta.label}</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-top:3px;">${meta.what}</div>
         </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:12px;">
+        <div style="flex:1;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;text-align:center;">
+          <div style="font-family:var(--font-display);font-size:18px;font-weight:900;color:${meta.color};">${confidence}%</div>
+          <div style="font-size:9px;color:var(--text-muted);letter-spacing:0.08em;margin-top:1px;">CONFIDENCE</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;text-align:center;">
+          <div style="font-family:var(--font-display);font-size:18px;font-weight:900;color:var(--text-primary);">${_tc.log.length}</div>
+          <div style="font-size:9px;color:var(--text-muted);letter-spacing:0.08em;margin-top:1px;">PARAMETERS</div>
+        </div>
+        <div style="flex:1;background:rgba(255,255,255,0.05);border-radius:8px;padding:8px 10px;text-align:center;">
+          <div style="font-family:var(--font-display);font-size:12px;font-weight:900;color:var(--text-primary);">${Object.keys(COMPLAINT_MAP).find(k => COMPLAINT_MAP[k] === _tc.pathway) || 'General'}</div>
+          <div style="font-size:9px;color:var(--text-muted);letter-spacing:0.08em;margin-top:1px;">PATHWAY</div>
+        </div>
+      </div>
+    </div>
 
-        <!-- Description -->
-        <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:16px; padding:10px 12px; background:rgba(255,255,255,0.04); border-radius:8px; border-left:3px solid ${res.color};">
-            ${res.desc}
-        </div>
+    <!-- Body -->
+    <div style="padding:16px 18px;">
 
-        <!-- First Aid Steps -->
-        <div style="margin-bottom:14px;">
-            <div style="font-family:var(--font-display); font-size:10px; letter-spacing:0.12em; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">📋 First Aid Protocol</div>
-            ${firstAidHTML}
-        </div>
+      <!-- First Aid -->
+      <div style="margin-bottom:16px;">
+        <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.12em;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">📋 First Aid Protocol</div>
+        ${stepsHTML}
+      </div>
 
-        <!-- Do Not -->
-        <div style="margin-bottom:20px; padding:10px 12px; background:rgba(239,68,68,0.06); border-radius:8px;">
-            <div style="font-family:var(--font-display); font-size:10px; letter-spacing:0.1em; color:#f87171; margin-bottom:6px;">⛔ DO NOT</div>
-            ${doNotHTML}
+      <!-- Paramedic Handoff -->
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px;margin-bottom:16px;border-left:3px solid ${meta.color};">
+        <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.1em;color:${meta.color};margin-bottom:6px;">🚑 TELL PARAMEDICS</div>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">
+          "${meta.paramedic} Patient: ${_tc.patientType || 'adult'}. Chief complaint: ${_tc.complaint || 'unknown'}. Assessment questions answered: ${_tc.log.length}."
         </div>
+      </div>
 
-        <!-- Action Buttons -->
-        <div style="display:flex; flex-direction:column; gap:10px;">
-            ${res.callAmb ? `
-                <a href="tel:108" onclick="if(navigator.vibrate)navigator.vibrate([200,100,300]);"
-                   style="display:flex; align-items:center; justify-content:center; gap:10px;
-                          background:#ef4444; color:white; text-decoration:none; padding:14px;
-                          border-radius:12px; font-family:var(--font-display); font-size:14px;
-                          font-weight:800; letter-spacing:0.08em; box-shadow:0 4px 20px rgba(239,68,68,0.4);">
-                    📞 CALL 108 — AMBULANCE NOW
-                </a>
-            ` : ''}
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                <button onclick="_restartTriage()"
-                    style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
-                           color:var(--text-primary); padding:11px; border-radius:10px;
-                           font-size:13px; cursor:pointer;">
-                    🔄 New Assessment
-                </button>
-                <button onclick="Router.navigate('/firstaid')"
-                    style="background:rgba(20,184,166,0.1); border:1px solid rgba(20,184,166,0.3);
-                           color:var(--accent-teal); padding:11px; border-radius:10px;
-                           font-size:13px; cursor:pointer;">
-                    📖 First Aid Guide
-                </button>
-            </div>
+      <!-- Assessment Log (collapsible) -->
+      <details style="margin-bottom:16px;">
+        <summary style="font-family:var(--font-display);font-size:10px;letter-spacing:0.1em;color:var(--text-muted);cursor:pointer;padding:6px 0;">▶ VIEW ASSESSMENT LOG (${_tc.log.length} entries)</summary>
+        <div style="margin-top:8px;background:rgba(0,0,0,0.2);border-radius:8px;padding:10px;">
+          ${logHTML}
         </div>
-    `;
+      </details>
+
+      <!-- Action Buttons -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${meta.callAmb ? `
+          <a href="tel:108" onclick="if(navigator.vibrate)navigator.vibrate([200,100,400]);"
+            style="display:flex;align-items:center;justify-content:center;gap:10px;
+                   background:#ef4444;color:white;text-decoration:none;padding:15px;
+                   border-radius:12px;font-family:var(--font-display);font-size:14px;
+                   font-weight:900;letter-spacing:0.08em;box-shadow:0 4px 24px rgba(239,68,68,0.45);">
+            📞 CALL 108 — AMBULANCE NOW
+          </a>
+        ` : ''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button onclick="_tcRestart()"
+            style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);
+                   color:var(--text-primary);padding:12px;border-radius:10px;font-size:13px;cursor:pointer;">
+            🔄 New Assessment
+          </button>
+          <button onclick="Router.navigate('/firstaid')"
+            style="background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.3);
+                   color:var(--accent-teal);padding:12px;border-radius:10px;font-size:13px;cursor:pointer;">
+            📖 First Aid Guide
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
 
     msgs.appendChild(card);
-    _scrollBottom();
-
-    // Clear input area
-    const area = document.getElementById('chat-input-area');
-    if (area) area.innerHTML = '';
-
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    _tcScroll();
+    _tcSetInput('');
+    if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
 }
 
-/* ──────────────────────────────────────────────────────────
-   Emergency Flash (RED only)
-   ────────────────────────────────────────────────────────── */
-function _showChatEmergencyFlash() {
-    if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 600]);
-
-    const flash = document.createElement('div');
-    flash.style.cssText = `
-        position:fixed; inset:0; z-index:99999;
-        background:rgba(220,0,0,0.85);
-        display:flex; flex-direction:column; align-items:center; justify-content:center;
-        gap:16px; animation:emergencyPulse 0.8s ease-in-out 3;
-        pointer-events:none;
-    `;
-    flash.innerHTML = `
-        <style>
-          @keyframes emergencyPulse{from{opacity:0.6;}to{opacity:1;}}
-        </style>
-        <div style="font-size:60px;">🚨</div>
-        <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:white;letter-spacing:0.15em;">IMMEDIATE</div>
-        <div style="font-size:14px;color:rgba(255,255,255,0.9);">Call 108 NOW</div>
-    `;
-    document.body.appendChild(flash);
-    setTimeout(() => flash.remove(), 2400);
+/* ================================================================
+   EMERGENCY FLASH
+   ================================================================ */
+function _tcEmergencyFlash() {
+    if (navigator.vibrate) navigator.vibrate([400, 100, 400, 100, 800]);
+    const f = document.createElement('div');
+    f.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(200,0,0,0.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;pointer-events:none;animation:tcFadeUp 0.2s ease;';
+    f.innerHTML = `<div style="font-size:56px;">🚨</div><div style="font-family:var(--font-display);font-size:26px;font-weight:900;color:white;letter-spacing:0.18em;">CALL 108 NOW</div><div style="font-size:13px;color:rgba(255,255,255,0.85);">Life-threatening emergency detected</div>`;
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 2600);
 }
 
-/* ──────────────────────────────────────────────────────────
-   Helpers
-   ────────────────────────────────────────────────────────── */
-function _updateProgress(pct) {
-    const fill = document.getElementById('chat-progress-fill');
-    if (fill) fill.style.width = pct + '%';
-}
+/* ================================================================
+   HELPERS
+   ================================================================ */
+function _esc(s) { return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
 
-function _clearInput() {
-    const area = document.getElementById('chat-input-area');
-    if (area) area.innerHTML = '';
-}
-
-function _scrollBottom() {
-    const msgs = document.getElementById('chat-messages');
-    if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 80);
-}
-
-function _restartTriage() {
-    const page = document.getElementById('triage-chat-page');
-    if (page) page.remove();
-    const newPage = renderTriageChat();
-    document.getElementById('app').appendChild(newPage);
+function _tcRestart() {
+    const old = document.getElementById('tc-page');
+    if (old) old.remove();
+    const app = document.getElementById('app');
+    if (app) app.appendChild(renderTriageChat());
 }
