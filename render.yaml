@@ -1,0 +1,47 @@
+services:
+  # ── Backend: Node.js Express API ────────────────────────────────────────
+  - type: web
+    name: upline-backend
+    env: node
+    region: singapore          # closest to India
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000             # Render injects its own PORT; this is a fallback
+      - key: FRONTEND_URL
+        value: https://upline-frontend.onrender.com   # update after first deploy
+
+  # ── Frontend: Static Site ────────────────────────────────────────────────
+  - type: web
+    name: upline-frontend
+    env: static
+    region: singapore
+    plan: free
+    rootDir: frontend
+    staticPublishPath: .        # serve the entire frontend/ folder as static
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
+      - path: /sw.js
+        name: Service-Worker-Allowed
+        value: /
+      - path: /css/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /js/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /data/*
+        name: Cache-Control
+        value: public, max-age=86400
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

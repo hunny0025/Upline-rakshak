@@ -1,0 +1,129 @@
+/* ===== UPLINE Design System — Tactical Futurism ===== */
+:root {
+  /* --- Background (Deep Charcoal) --- */
+  --bg-primary:       #121212;
+  --bg-secondary:     #1a1a1a;
+  --bg-card:          rgba(26, 26, 26, 0.85);
+  --bg-card-hover:    rgba(34, 34, 34, 0.95);
+  --bg-glass:         rgba(255, 255, 255, 0.04);
+  --bg-glass-hover:   rgba(255, 255, 255, 0.08);
+
+  /* --- Emergency Background (True Black / OLED) --- */
+  --bg-emergency:     #000000;
+
+  /* --- Accent Colors --- */
+  /* Electric Orange — primary actions / SOS */
+  --accent-primary:       #FF6D00;
+  --accent-primary-light: #FF8F00;
+  --accent-primary-dark:  #E65100;
+  --accent-glow:          rgba(255, 109, 0, 0.35);
+
+  /* Neon Teal — safety / GPS / maps */
+  --accent-teal:          #00E5FF;
+  --accent-teal-light:    #40EFFF;
+  --accent-teal-glow:     rgba(0, 229, 255, 0.3);
+
+  /* Amber Gold — gamification / badges */
+  --color-gold:           #FFC107;
+  --color-gold-bg:        rgba(255, 193, 7, 0.12);
+  --color-gold-glow:      rgba(255, 193, 7, 0.35);
+
+  /* --- Urgency Colors --- */
+  /* Crimson Red — critical alerts */
+  --color-emergency:      #D50000;
+  --color-emergency-bg:   rgba(213, 0, 0, 0.15);
+  --color-emergency-glow: rgba(213, 0, 0, 0.5);
+
+  --color-urgent:         #FF6D00;
+  --color-urgent-bg:      rgba(255, 109, 0, 0.12);
+  --color-urgent-glow:    rgba(255, 109, 0, 0.4);
+
+  --color-moderate:       #FFC107;
+  --color-moderate-bg:    rgba(255, 193, 7, 0.12);
+  --color-moderate-glow:  rgba(255, 193, 7, 0.35);
+
+  --color-low:            #00E5FF;
+  --color-low-bg:         rgba(0, 229, 255, 0.1);
+  --color-low-glow:       rgba(0, 229, 255, 0.3);
+
+  /* --- Text Colors --- */
+  --text-primary:   #F0F0F0;
+  --text-secondary: #A0A0A0;
+  --text-muted:     #666666;
+  --text-inverse:   #121212;
+
+  /* --- Borders --- */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-light:  rgba(255, 255, 255, 0.12);
+  --border-accent: rgba(255, 109, 0, 0.4);
+  --border-teal:   rgba(0, 229, 255, 0.3);
+
+  /* --- Spacing --- */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* --- Border Radius --- */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  /* --- Shadows --- */
+  --shadow-sm:        0 1px 4px rgba(0, 0, 0, 0.5);
+  --shadow-md:        0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg:        0 8px 40px rgba(0, 0, 0, 0.7);
+  --shadow-glow:      0 0 24px var(--accent-glow);
+  --shadow-emergency: 0 0 40px var(--color-emergency-glow);
+  --shadow-teal:      0 0 20px var(--accent-teal-glow);
+
+  /* --- Typography --- */
+  --font-display: 'Rajdhani', 'Inter', sans-serif;
+  --font-family:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-xs:   0.70rem;
+  --font-sm:   0.875rem;
+  --font-base: 1rem;
+  --font-lg:   1.125rem;
+  --font-xl:   1.25rem;
+  --font-2xl:  1.5rem;
+  --font-3xl:  2rem;
+  --font-4xl:  2.5rem;
+
+  /* --- Font Weights --- */
+  --weight-normal:   400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  /* --- Transitions --- */
+  --transition-fast:   120ms ease;
+  --transition-normal: 220ms ease;
+  --transition-slow:   400ms ease;
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* --- Adrenaline Shift --- */
+  --shift-duration: 800ms;
+  --shift-easing:   cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Z-index layers --- */
+  --z-base:      1;
+  --z-dropdown:  100;
+  --z-nav:       500;
+  --z-modal:     1000;
+  --z-toast:     1500;
+  --z-flash:     1800;
+  --z-splash:    2000;
+
+  /* --- Layout --- */
+  --nav-height: 72px;
+  --max-width:  480px;
+
+  /* --- HUD Aesthetics --- */
+  --hud-scanline-opacity: 0.025;
+  --hud-corner-clip: 12px;
+}

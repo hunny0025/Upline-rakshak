@@ -1,0 +1,632 @@
+{
+    "rules": [
+        {
+            "id": "R001",
+            "name": "Cardiac Emergency",
+            "conditions": {
+                "any": [
+                    "chest_pain"
+                ],
+                "with": [
+                    "breathing_difficulty"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Possible cardiac emergency. Chest pain combined with breathing difficulty may indicate a heart attack.",
+            "actions": [
+                "Call 108 immediately",
+                "Sit upright, do not lie flat",
+                "Loosen tight clothing",
+                "Chew an aspirin if available and not allergic",
+                "Do NOT move the patient unnecessarily",
+                "Stay calm and wait for help"
+            ],
+            "firstAidRef": "cardiac_emergency"
+        },
+        {
+            "id": "R002",
+            "name": "Cardiac Event - Chest Pain Alone",
+            "conditions": {
+                "any": [
+                    "chest_pain"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Chest pain alone can indicate a serious cardiac event. Treat as emergency until proven otherwise.",
+            "actions": [
+                "Call 108 immediately",
+                "Sit upright and rest",
+                "Chew an aspirin if available and not allergic",
+                "Loosen tight clothing",
+                "Monitor breathing"
+            ],
+            "firstAidRef": "cardiac_emergency"
+        },
+        {
+            "id": "R003",
+            "name": "Unconscious Person",
+            "conditions": {
+                "any": [
+                    "unconsciousness"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "An unconscious person needs immediate emergency care. Check for breathing and pulse.",
+            "actions": [
+                "Call 108 immediately",
+                "Check if the person is breathing",
+                "If not breathing, begin CPR",
+                "If breathing, place in recovery position",
+                "Do NOT give food or water",
+                "Do NOT leave the person alone"
+            ],
+            "firstAidRef": "unconsciousness"
+        },
+        {
+            "id": "R004",
+            "name": "Severe Hemorrhage",
+            "conditions": {
+                "any": [
+                    "severe_bleeding"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Severe bleeding can lead to shock and death if not controlled quickly.",
+            "actions": [
+                "Call 108 immediately",
+                "Apply firm direct pressure using a clean cloth",
+                "Do NOT remove the cloth — add more layers",
+                "Elevate the injured limb if possible",
+                "Apply a tourniquet only as last resort above the wound",
+                "Keep the patient lying down and warm"
+            ],
+            "firstAidRef": "severe_bleeding"
+        },
+        {
+            "id": "R005",
+            "name": "Stroke",
+            "conditions": {
+                "any": [
+                    "stroke_symptoms"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Stroke is a time-critical emergency. Use FAST: Face drooping, Arm weakness, Speech difficulty, Time to call emergency.",
+            "actions": [
+                "Call 108 immediately — every minute counts",
+                "Note the time symptoms started",
+                "Do NOT give food or water",
+                "Keep the patient comfortable and still",
+                "If unconscious, place in recovery position",
+                "Do NOT give aspirin for stroke"
+            ],
+            "firstAidRef": "stroke"
+        },
+        {
+            "id": "R006",
+            "name": "Choking Emergency",
+            "conditions": {
+                "any": [
+                    "choking"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Airway obstruction can be fatal in minutes. Immediate action required.",
+            "actions": [
+                "If conscious, perform Heimlich manoeuvre (abdominal thrusts)",
+                "Stand behind the person, fist above navel, thrust inward and upward",
+                "For infants: 5 back blows then 5 chest thrusts",
+                "If unconscious, call 108 and begin CPR",
+                "Check mouth for visible objects",
+                "Do NOT do a blind finger sweep"
+            ],
+            "firstAidRef": "choking"
+        },
+        {
+            "id": "R007",
+            "name": "Spinal Injury",
+            "conditions": {
+                "any": [
+                    "spinal_injury"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Suspected spinal injury — do NOT move the patient. Improper movement can cause permanent paralysis.",
+            "actions": [
+                "Call 108 immediately",
+                "Do NOT move the patient",
+                "Keep the head, neck and spine aligned",
+                "Stabilize the head with your hands",
+                "Monitor breathing",
+                "Cover with blanket to prevent shock"
+            ],
+            "firstAidRef": "spinal_injury"
+        },
+        {
+            "id": "R008",
+            "name": "Drowning",
+            "conditions": {
+                "any": [
+                    "drowning"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Drowning victim needs immediate resuscitation. Every second counts.",
+            "actions": [
+                "Call 108 immediately",
+                "Remove from water safely",
+                "Check for breathing",
+                "If not breathing, begin rescue breaths and CPR",
+                "Place in recovery position if breathing",
+                "Keep warm — remove wet clothing"
+            ],
+            "firstAidRef": "drowning"
+        },
+        {
+            "id": "R009",
+            "name": "Meningitis Suspicion",
+            "conditions": {
+                "any": [
+                    "high_fever"
+                ],
+                "with": [
+                    "stiff_neck"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "High fever with stiff neck may indicate meningitis — a life-threatening infection.",
+            "actions": [
+                "Call 108 immediately",
+                "Keep the patient in a dark, quiet room",
+                "Do NOT give food or water if consciousness is altered",
+                "Monitor breathing and consciousness",
+                "Note all symptoms and time of onset"
+            ],
+            "firstAidRef": "meningitis"
+        },
+        {
+            "id": "R010",
+            "name": "Seizure",
+            "conditions": {
+                "any": [
+                    "seizure"
+                ]
+            },
+            "urgency": "URGENT",
+            "description": "Most seizures stop on their own. Protect the patient from injury during the seizure.",
+            "actions": [
+                "Clear area of dangerous objects",
+                "Do NOT restrain the person",
+                "Do NOT put anything in the mouth",
+                "Time the seizure",
+                "Place on side after seizure stops",
+                "Call 108 if seizure lasts more than 5 minutes",
+                "Stay with the patient until fully conscious"
+            ],
+            "firstAidRef": "seizure"
+        },
+        {
+            "id": "R011",
+            "name": "Severe Allergic Reaction",
+            "conditions": {
+                "any": [
+                    "allergic_reaction"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Anaphylaxis can cause airway closure and death within minutes.",
+            "actions": [
+                "Call 108 immediately",
+                "Use EpiPen if available (inject into outer thigh)",
+                "Lay the patient flat with legs elevated",
+                "If breathing difficulty, sit them upright",
+                "Loosen tight clothing",
+                "Be ready to perform CPR"
+            ],
+            "firstAidRef": "allergic_reaction"
+        },
+        {
+            "id": "R012",
+            "name": "Poisoning",
+            "conditions": {
+                "any": [
+                    "poisoning"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Poisoning requires immediate medical attention. Identify the substance if possible.",
+            "actions": [
+                "Call 108 and Poison Control",
+                "Do NOT induce vomiting unless directed",
+                "If chemical on skin, remove clothing and rinse with water",
+                "Keep a sample of the poison/container",
+                "Monitor breathing and consciousness",
+                "If unconscious, place in recovery position"
+            ],
+            "firstAidRef": "poisoning"
+        },
+        {
+            "id": "R013",
+            "name": "Snake Bite",
+            "conditions": {
+                "any": [
+                    "snake_bite"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Snake bites need anti-venom treatment at a hospital. Do NOT cut, suck, or apply tourniquet.",
+            "actions": [
+                "Call 108 immediately",
+                "Keep the patient still and calm",
+                "Remove rings/watches before swelling",
+                "Immobilize the bitten limb below heart level",
+                "Wrap with pressure bandage (NOT tight tourniquet)",
+                "Do NOT cut the wound or suck venom",
+                "Try to remember the snake's appearance"
+            ],
+            "firstAidRef": "snake_bite"
+        },
+        {
+            "id": "R014",
+            "name": "Severe Burns",
+            "conditions": {
+                "any": [
+                    "severe_burn"
+                ]
+            },
+            "urgency": "URGENT",
+            "description": "Severe burns need professional medical care. Cool the burn but do not apply ice.",
+            "actions": [
+                "Call 108 for large or deep burns",
+                "Cool with running water for 20 minutes",
+                "Do NOT apply ice, butter, or toothpaste",
+                "Cover loosely with clean, non-stick dressing",
+                "Remove jewelry near the burn before swelling",
+                "Give small sips of water if conscious",
+                "Watch for signs of shock"
+            ],
+            "firstAidRef": "burns"
+        },
+        {
+            "id": "R015",
+            "name": "Head Injury",
+            "conditions": {
+                "any": [
+                    "head_injury"
+                ]
+            },
+            "urgency": "URGENT",
+            "description": "Head injuries can have delayed serious effects. Monitor closely.",
+            "actions": [
+                "Call 108 if unconscious or confused",
+                "Keep the patient still",
+                "Apply gentle pressure with clean cloth if bleeding",
+                "Monitor for vomiting, confusion, or drowsiness",
+                "Do NOT give food or water",
+                "Do NOT let the person sleep for first few hours",
+                "Watch for unequal pupil size"
+            ],
+            "firstAidRef": "head_injury"
+        },
+        {
+            "id": "R016",
+            "name": "Heat Stroke",
+            "conditions": {
+                "any": [
+                    "heat_stroke"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Heat stroke is a medical emergency. Body temperature exceeds 40°C.",
+            "actions": [
+                "Call 108 immediately",
+                "Move to shade or cool area",
+                "Remove excess clothing",
+                "Cool with water, wet towels, or fanning",
+                "Apply ice packs to neck, armpits, groin",
+                "Give small sips of cool water if conscious",
+                "Do NOT give fever medicine"
+            ],
+            "firstAidRef": "heat_stroke"
+        },
+        {
+            "id": "R017",
+            "name": "Electric Shock",
+            "conditions": {
+                "any": [
+                    "electric_shock"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Electrical injuries can cause cardiac arrest and internal burns.",
+            "actions": [
+                "Do NOT touch the person if still near power source",
+                "Turn off power or use non-conductive material to separate",
+                "Call 108 immediately",
+                "Check breathing and pulse",
+                "Begin CPR if needed",
+                "Treat visible burns with cool water",
+                "Watch for delayed cardiac effects"
+            ],
+            "firstAidRef": "electric_shock"
+        },
+        {
+            "id": "R018",
+            "name": "Diabetic Emergency",
+            "conditions": {
+                "any": [
+                    "diabetic_emergency"
+                ]
+            },
+            "urgency": "URGENT",
+            "description": "Diabetic emergencies can lead to coma. Low sugar is more immediately dangerous.",
+            "actions": [
+                "If conscious and able to swallow, give sugar/juice/candy",
+                "If unconscious, do NOT give food or water",
+                "Call 108 if no improvement in 10 minutes",
+                "Place unconscious patient in recovery position",
+                "Check for medical ID bracelet",
+                "Monitor breathing"
+            ],
+            "firstAidRef": "diabetic_emergency"
+        },
+        {
+            "id": "R019",
+            "name": "Severe Asthma Attack",
+            "conditions": {
+                "any": [
+                    "asthma_attack"
+                ]
+            },
+            "urgency": "URGENT",
+            "description": "Severe asthma attack with no relief from inhaler needs emergency care.",
+            "actions": [
+                "Help patient sit upright",
+                "Use reliever inhaler (blue) — 4 puffs",
+                "Wait 4 minutes, give 4 more puffs if no relief",
+                "Call 108 if no improvement",
+                "Keep the patient calm",
+                "Loosen tight clothing",
+                "Do NOT force the patient to lie down"
+            ],
+            "firstAidRef": "asthma"
+        },
+        {
+            "id": "R020",
+            "name": "Pregnancy Emergency",
+            "conditions": {
+                "any": [
+                    "pregnancy_emergency"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Pregnancy emergencies need immediate professional care.",
+            "actions": [
+                "Call 108 immediately",
+                "Keep the person comfortable on left side",
+                "Do NOT try to stop natural labor",
+                "If bleeding, use clean pads but do NOT insert anything",
+                "Time contractions",
+                "Keep warm and calm"
+            ],
+            "firstAidRef": "pregnancy_emergency"
+        },
+        {
+            "id": "R021",
+            "name": "Vomiting Blood",
+            "conditions": {
+                "any": [
+                    "vomiting_blood"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Vomiting blood indicates serious internal bleeding and requires emergency care.",
+            "actions": [
+                "Call 108 immediately",
+                "Keep the patient on their side",
+                "Do NOT give food or water",
+                "Save a sample of vomit for doctors",
+                "Monitor for shock (pale, cold, rapid pulse)",
+                "Keep warm and still"
+            ],
+            "firstAidRef": "vomiting_blood"
+        },
+        {
+            "id": "R022",
+            "name": "Hypothermia",
+            "conditions": {
+                "any": [
+                    "hypothermia"
+                ]
+            },
+            "urgency": "URGENT",
+            "description": "Hypothermia can be fatal. Warm gradually — do NOT use direct heat.",
+            "actions": [
+                "Move to warm shelter",
+                "Remove wet clothing",
+                "Wrap in blankets/warm clothing",
+                "Give warm sweet drinks if conscious",
+                "Do NOT apply direct heat (hot water, fire)",
+                "Do NOT rub the skin",
+                "Call 108 if severe or unconscious"
+            ],
+            "firstAidRef": "hypothermia"
+        },
+        {
+            "id": "R023",
+            "name": "Fracture",
+            "conditions": {
+                "any": [
+                    "fracture"
+                ]
+            },
+            "urgency": "MODERATE",
+            "description": "Suspected fractures need immobilization and professional care.",
+            "actions": [
+                "Do NOT move the injured limb",
+                "Immobilize with splint or padded support",
+                "Apply ice pack wrapped in cloth",
+                "Elevate if possible",
+                "Go to nearest hospital",
+                "Give pain relief if available"
+            ],
+            "firstAidRef": "fracture"
+        },
+        {
+            "id": "R024",
+            "name": "Severe Abdominal Pain",
+            "conditions": {
+                "any": [
+                    "severe_abdominal_pain"
+                ]
+            },
+            "urgency": "URGENT",
+            "description": "Severe abdominal pain may indicate appendicitis, obstruction, or other surgical emergency.",
+            "actions": [
+                "Do NOT give food or water",
+                "Do NOT give painkillers before medical exam",
+                "Rest in comfortable position",
+                "Call 108 or go to hospital",
+                "Monitor for fever or vomiting",
+                "Note when pain started and location"
+            ],
+            "firstAidRef": "abdominal_pain"
+        },
+        {
+            "id": "R025",
+            "name": "Insect/Animal Bite",
+            "conditions": {
+                "any": [
+                    "insect_bite"
+                ]
+            },
+            "urgency": "MODERATE",
+            "description": "Most bites are not life-threatening, but monitor for allergic reactions.",
+            "actions": [
+                "Wash the bite area with soap and water",
+                "Apply cold compress",
+                "Watch for allergic reactions (swelling, breathing difficulty)",
+                "For dog bites: seek anti-rabies treatment",
+                "For scorpion stings: seek medical help",
+                "Keep the wound clean"
+            ],
+            "firstAidRef": "bites_stings"
+        },
+        {
+            "id": "R026",
+            "name": "Eye Injury",
+            "conditions": {
+                "any": [
+                    "eye_injury"
+                ]
+            },
+            "urgency": "MODERATE",
+            "description": "Eye injuries need careful treatment. Do NOT rub or press on the eye.",
+            "actions": [
+                "Do NOT rub the eye",
+                "For chemicals: flush with clean water for 15-20 minutes",
+                "For objects: do NOT try to remove embedded objects",
+                "Cover the eye loosely with clean cloth",
+                "Seek medical help immediately",
+                "Do NOT apply pressure"
+            ],
+            "firstAidRef": "eye_injury"
+        },
+        {
+            "id": "R027",
+            "name": "Severe Headache with Danger Signs",
+            "conditions": {
+                "any": [
+                    "severe_headache"
+                ],
+                "with": [
+                    "confusion"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Sudden severe headache with confusion may indicate stroke or brain hemorrhage.",
+            "actions": [
+                "Call 108 immediately",
+                "Keep the patient still and quiet",
+                "Monitor consciousness level",
+                "Note time of onset",
+                "Do NOT give aspirin",
+                "Be ready to perform CPR"
+            ],
+            "firstAidRef": "stroke"
+        },
+        {
+            "id": "R028",
+            "name": "Dehydration",
+            "conditions": {
+                "any": [
+                    "dehydration"
+                ]
+            },
+            "urgency": "MODERATE",
+            "description": "Dehydration needs fluid replacement. Severe cases can be dangerous.",
+            "actions": [
+                "Give ORS (oral rehydration solution) or clean water with salt and sugar",
+                "Small, frequent sips — not large gulps",
+                "Rest in cool area",
+                "Monitor urine output",
+                "Seek medical help if no improvement in 2 hours",
+                "Watch for signs of shock"
+            ],
+            "firstAidRef": "dehydration"
+        },
+        {
+            "id": "R029",
+            "name": "Minor Symptoms - Low Urgency",
+            "conditions": {
+                "any": [
+                    "headache",
+                    "mild_fever",
+                    "cough",
+                    "sore_throat",
+                    "rash",
+                    "back_pain",
+                    "abdominal_pain",
+                    "dizziness",
+                    "ear_pain",
+                    "tooth_pain",
+                    "joint_pain",
+                    "urinary_problems",
+                    "cut_wound"
+                ]
+            },
+            "urgency": "LOW",
+            "description": "These symptoms are generally not emergencies but should be monitored.",
+            "actions": [
+                "Rest and stay hydrated",
+                "Take over-the-counter pain relief if needed",
+                "Monitor symptoms for 24-48 hours",
+                "See a doctor if symptoms worsen",
+                "Clean and cover any wounds",
+                "Maintain good hygiene"
+            ],
+            "firstAidRef": "general_care"
+        },
+        {
+            "id": "R030",
+            "name": "Breathing Difficulty Alone",
+            "conditions": {
+                "any": [
+                    "breathing_difficulty"
+                ]
+            },
+            "urgency": "EMERGENCY",
+            "description": "Any significant breathing difficulty is a potential emergency.",
+            "actions": [
+                "Call 108 immediately",
+                "Help the person sit upright",
+                "Loosen tight clothing",
+                "If they have an inhaler, help them use it",
+                "Open windows for fresh air",
+                "Stay calm and reassuring",
+                "Be ready to perform CPR if breathing stops"
+            ],
+            "firstAidRef": "breathing_difficulty"
+        }
+    ]
+}

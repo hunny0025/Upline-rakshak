@@ -1,0 +1,487 @@
+{
+    "instructions": {
+        "cardiac_emergency": {
+            "title": "Heart Attack / Cardiac Emergency",
+            "icon": "❤️",
+            "steps": [
+                "Call 108 immediately",
+                "Sit upright, lean forward slightly",
+                "Loosen tight clothing",
+                "Chew aspirin if available and not allergic",
+                "Keep calm, do NOT panic",
+                "If unconscious and not breathing, begin CPR: 100-120 compressions/min on chest center",
+                "Continue CPR until help arrives"
+            ],
+            "warnings": [
+                "Do NOT give aspirin if allergic",
+                "Do NOT let person walk",
+                "Do NOT ignore mild chest pain"
+            ],
+            "whenToCallDoctor": "Always call 108 for any chest pain."
+        },
+        "unconsciousness": {
+            "title": "Unconscious Person",
+            "icon": "🚨",
+            "steps": [
+                "Check response to voice/tapping",
+                "Call 108 immediately",
+                "Check breathing for 10 seconds",
+                "If NOT breathing: Begin CPR",
+                "If breathing: Recovery position (on side)",
+                "Clear airway — tilt head, lift chin",
+                "Do NOT give food or water",
+                "Keep warm with blanket"
+            ],
+            "warnings": [
+                "Do NOT shake violently",
+                "Do NOT pour water on face",
+                "Do NOT leave alone"
+            ],
+            "whenToCallDoctor": "Always call 108."
+        },
+        "severe_bleeding": {
+            "title": "Severe Bleeding",
+            "icon": "🩸",
+            "steps": [
+                "Call 108 immediately",
+                "Apply firm direct pressure with clean cloth",
+                "Press for at least 15 minutes",
+                "Do NOT remove cloth — add more layers",
+                "Elevate injured area above heart",
+                "Apply tourniquet only as last resort",
+                "Keep patient lying down"
+            ],
+            "warnings": [
+                "Do NOT remove embedded objects",
+                "Watch for shock signs: pale, cold, rapid pulse"
+            ],
+            "whenToCallDoctor": "Call 108 for bleeding that won't stop within 15 minutes."
+        },
+        "stroke": {
+            "title": "Stroke (FAST)",
+            "icon": "🧠",
+            "steps": [
+                "FAST: Face drooping, Arm weakness, Speech slurred, Time to call",
+                "Call 108 immediately",
+                "Note time symptoms started",
+                "Lay down with head slightly elevated",
+                "If vomiting, turn on side",
+                "Do NOT give food, water, or medicine"
+            ],
+            "warnings": [
+                "Do NOT give aspirin for stroke",
+                "Every minute counts",
+                "Do NOT let them drive"
+            ],
+            "whenToCallDoctor": "Call 108 immediately. Treatment within 3 hours is critical."
+        },
+        "choking": {
+            "title": "Choking",
+            "icon": "😮",
+            "steps": [
+                "If can cough, encourage forceful coughing",
+                "If unable to cough/breathe: Heimlich manoeuvre",
+                "Stand behind, fist above navel, thrust inward and upward",
+                "Repeat until object comes out",
+                "For infants: 5 back blows then 5 chest thrusts",
+                "If unconscious, call 108 and begin CPR"
+            ],
+            "warnings": [
+                "Do NOT do blind finger sweeps",
+                "For pregnant women: chest thrusts instead"
+            ],
+            "whenToCallDoctor": "Call 108 if object doesn't come out or person becomes unconscious."
+        },
+        "snake_bite": {
+            "title": "Snake Bite",
+            "icon": "🐍",
+            "steps": [
+                "Keep calm and still",
+                "Call 108 immediately",
+                "Remove rings/watches near bite",
+                "Keep bitten limb below heart level",
+                "Apply firm pressure bandage (NOT tourniquet)",
+                "Immobilize limb with splint",
+                "Note snake appearance for doctors"
+            ],
+            "warnings": [
+                "Do NOT cut wound",
+                "Do NOT suck venom",
+                "Do NOT apply ice or tourniquet"
+            ],
+            "whenToCallDoctor": "Always get to hospital for ANY snake bite."
+        },
+        "burns": {
+            "title": "Burns",
+            "icon": "🔥",
+            "steps": [
+                "Remove from heat source",
+                "Cool under running water 20 minutes",
+                "Remove clothing/jewelry (unless stuck)",
+                "Cover loosely with clean non-stick dressing",
+                "Give sips of cool water",
+                "Take OTC pain relief"
+            ],
+            "warnings": [
+                "Do NOT apply ice, butter, or toothpaste",
+                "Do NOT burst blisters"
+            ],
+            "whenToCallDoctor": "Call 108 for burns larger than palm, on face/hands/feet, or deep burns."
+        },
+        "poisoning": {
+            "title": "Poisoning",
+            "icon": "☠️",
+            "steps": [
+                "Call 108 and Poison Control",
+                "Identify substance, amount, time",
+                "Keep container for doctors",
+                "Skin: rinse 20 min",
+                "Eyes: flush 20 min",
+                "Inhaled: move to fresh air",
+                "Monitor breathing"
+            ],
+            "warnings": [
+                "Do NOT induce vomiting unless directed",
+                "Do NOT give anything by mouth if unconscious"
+            ],
+            "whenToCallDoctor": "Call 108 for ALL poisoning cases."
+        },
+        "head_injury": {
+            "title": "Head Injury",
+            "icon": "🤕",
+            "steps": [
+                "Keep still",
+                "Call 108 if unconscious/confused",
+                "Apply gentle pressure for bleeding",
+                "Monitor for vomiting, confusion, drowsiness",
+                "Apply ice pack wrapped in cloth",
+                "Watch for unequal pupils"
+            ],
+            "warnings": [
+                "Do NOT give aspirin",
+                "Do NOT let person sleep for 2-3 hours"
+            ],
+            "whenToCallDoctor": "Seek help for loss of consciousness, vomiting, or confusion."
+        },
+        "seizure": {
+            "title": "Seizure / Convulsion",
+            "icon": "⚡",
+            "steps": [
+                "Clear area of dangerous objects",
+                "Time the seizure",
+                "Do NOT restrain",
+                "Do NOT put anything in mouth",
+                "After seizure: recovery position",
+                "Stay with them until conscious"
+            ],
+            "warnings": [
+                "Do NOT hold them down",
+                "Do NOT give food/water until conscious"
+            ],
+            "whenToCallDoctor": "Call 108 if seizure lasts > 5 min or first-time seizure."
+        },
+        "allergic_reaction": {
+            "title": "Anaphylaxis",
+            "icon": "⚠️",
+            "steps": [
+                "Call 108",
+                "Use EpiPen if available (outer thigh)",
+                "Lay flat with legs raised",
+                "If breathing difficulty, sit upright",
+                "Loosen clothing",
+                "Be ready for CPR"
+            ],
+            "warnings": [
+                "Reaction can return",
+                "Even if EpiPen helps, go to hospital"
+            ],
+            "whenToCallDoctor": "Always call 108 for anaphylaxis."
+        },
+        "asthma": {
+            "title": "Asthma Attack",
+            "icon": "💨",
+            "steps": [
+                "Sit upright, lean forward",
+                "Use blue inhaler: 4 puffs",
+                "Wait 4 min, 4 more puffs if needed",
+                "Call 108 if no improvement",
+                "Keep calm",
+                "Loosen clothing"
+            ],
+            "warnings": [
+                "Do NOT force to lie down",
+                "Do NOT give sedatives"
+            ],
+            "whenToCallDoctor": "Call 108 if inhaler gives no relief or lips turn blue."
+        },
+        "spinal_injury": {
+            "title": "Spinal Injury",
+            "icon": "🔒",
+            "steps": [
+                "Do NOT move the patient",
+                "Call 108",
+                "Keep head-neck-spine aligned",
+                "Stabilize head with hands",
+                "Cover with blanket",
+                "Monitor breathing"
+            ],
+            "warnings": [
+                "Do NOT bend/twist neck",
+                "Do NOT let person get up",
+                "Do NOT remove helmet"
+            ],
+            "whenToCallDoctor": "Always call 108 for suspected spinal injury."
+        },
+        "drowning": {
+            "title": "Drowning",
+            "icon": "🌊",
+            "steps": [
+                "Remove from water safely",
+                "Call 108",
+                "Check breathing",
+                "If not breathing: 5 rescue breaths then CPR",
+                "If breathing: recovery position",
+                "Remove wet clothing, keep warm"
+            ],
+            "warnings": [
+                "Do NOT try to drain water from lungs",
+                "Always get medical check-up"
+            ],
+            "whenToCallDoctor": "Always call 108. All drowning cases need hospital evaluation."
+        },
+        "heat_stroke": {
+            "title": "Heat Stroke",
+            "icon": "☀️",
+            "steps": [
+                "Call 108",
+                "Move to shade/cool area",
+                "Remove excess clothing",
+                "Cool with water and fanning",
+                "Ice packs to neck, armpits, groin",
+                "Sips of cool water if conscious"
+            ],
+            "warnings": [
+                "Do NOT give fever medicine",
+                "Do NOT give large amounts of water"
+            ],
+            "whenToCallDoctor": "Call 108 for temp > 40°C, confusion, or unconsciousness."
+        },
+        "hypothermia": {
+            "title": "Hypothermia",
+            "icon": "❄️",
+            "steps": [
+                "Move to warm shelter",
+                "Remove wet clothing",
+                "Wrap in blankets",
+                "Give warm sweet drinks (NOT alcohol)",
+                "Apply warm water bottles to chest/neck/groin"
+            ],
+            "warnings": [
+                "Do NOT apply direct heat",
+                "Do NOT rub skin",
+                "Handle gently"
+            ],
+            "whenToCallDoctor": "Call 108 for severe hypothermia or unconsciousness."
+        },
+        "electric_shock": {
+            "title": "Electrical Injury",
+            "icon": "⚡",
+            "steps": [
+                "Do NOT touch if near power source",
+                "Turn off power",
+                "Separate with non-conductive material",
+                "Call 108",
+                "Check breathing/pulse",
+                "Begin CPR if needed",
+                "Treat burns with cool water"
+            ],
+            "warnings": [
+                "Do NOT use wet materials",
+                "Internal injuries may not be visible"
+            ],
+            "whenToCallDoctor": "Call 108 for ALL electrical injuries."
+        },
+        "diabetic_emergency": {
+            "title": "Diabetic Emergency",
+            "icon": "🩺",
+            "steps": [
+                "Look for medical ID",
+                "If conscious + low sugar: give juice/candy/sugar water",
+                "Wait 10-15 min, reassess",
+                "If unconscious: recovery position, call 108",
+                "Do NOT give food if unconscious"
+            ],
+            "warnings": [
+                "If unsure high/low, give sugar — safer",
+                "Do NOT inject insulin unless trained"
+            ],
+            "whenToCallDoctor": "Call 108 if unconscious, seizures, or no improvement."
+        },
+        "pregnancy_emergency": {
+            "title": "Pregnancy Emergency",
+            "icon": "🤰",
+            "steps": [
+                "Call 108",
+                "Lie on LEFT side",
+                "Use clean pads for bleeding",
+                "Time contractions if in labor",
+                "Keep mother and baby warm"
+            ],
+            "warnings": [
+                "Do NOT delay calling help",
+                "Do NOT insert anything",
+                "Do NOT give medicines"
+            ],
+            "whenToCallDoctor": "Call 108 for bleeding, early water breaking, or severe pain."
+        },
+        "vomiting_blood": {
+            "title": "Vomiting Blood",
+            "icon": "🩸",
+            "steps": [
+                "Call 108",
+                "Keep on side to prevent choking",
+                "Do NOT give food/water",
+                "Save vomit sample",
+                "Monitor for shock",
+                "Keep warm and still"
+            ],
+            "warnings": [
+                "Bright red = active bleed, dark = older bleed — both serious"
+            ],
+            "whenToCallDoctor": "Call 108 for ANY vomiting of blood."
+        },
+        "meningitis": {
+            "title": "Meningitis Suspicion",
+            "icon": "🧠",
+            "steps": [
+                "Call 108 — can be fatal",
+                "Check: fever + stiff neck + headache",
+                "Glass test: press glass on rash — if rash stays, urgent",
+                "Dark quiet room",
+                "Monitor breathing/consciousness"
+            ],
+            "warnings": [
+                "Can progress rapidly",
+                "High fever + stiff neck = suspect meningitis"
+            ],
+            "whenToCallDoctor": "Call 108 immediately."
+        },
+        "bites_stings": {
+            "title": "Insect & Animal Bites",
+            "icon": "🐝",
+            "steps": [
+                "Wash with soap and water",
+                "Remove stinger by scraping sideways",
+                "Apply cold compress 10-15 min",
+                "For dog bites: wash 15 min with soap",
+                "Apply antiseptic",
+                "Monitor for allergic reaction",
+                "Dog bites: anti-rabies within 24 hours"
+            ],
+            "warnings": [
+                "Watch for anaphylaxis",
+                "All dog/bat bites need rabies evaluation"
+            ],
+            "whenToCallDoctor": "Seek help for large swelling, breathing difficulty, or animal bites."
+        },
+        "fracture": {
+            "title": "Broken Bone / Fracture",
+            "icon": "🦴",
+            "steps": [
+                "Do NOT move injured limb",
+                "Immobilize with splint",
+                "Apply ice pack 15-20 min",
+                "Elevate if possible",
+                "If bone protruding, cover — do NOT push back",
+                "Go to hospital"
+            ],
+            "warnings": [
+                "Do NOT straighten deformed limb",
+                "Watch for shock in severe fractures"
+            ],
+            "whenToCallDoctor": "Go to hospital for all suspected fractures."
+        },
+        "eye_injury": {
+            "title": "Eye Injury",
+            "icon": "👁️",
+            "steps": [
+                "Do NOT rub eye",
+                "Chemicals: flush 15-20 min",
+                "Debris: blink or flush",
+                "Embedded objects: cover both eyes loosely",
+                "Seek medical attention"
+            ],
+            "warnings": [
+                "Do NOT try to remove embedded objects",
+                "Do NOT apply pressure"
+            ],
+            "whenToCallDoctor": "Seek immediate help for any significant eye injury."
+        },
+        "abdominal_pain": {
+            "title": "Abdominal Pain",
+            "icon": "🤢",
+            "steps": [
+                "Rest with knees drawn up",
+                "Do NOT eat until cause known",
+                "Small sips water okay",
+                "Warm cloth on area",
+                "Note location, time, severity"
+            ],
+            "warnings": [
+                "Severe + fever + vomiting may be surgical emergency",
+                "Right lower side may be appendicitis"
+            ],
+            "whenToCallDoctor": "Call 108 for severe pain with fever, vomiting, or blood."
+        },
+        "dehydration": {
+            "title": "Dehydration",
+            "icon": "💧",
+            "steps": [
+                "Prepare ORS: 1L water + 6 tsp sugar + ½ tsp salt",
+                "Small frequent sips",
+                "Rest in cool shaded area",
+                "Continue ORS for 24 hours"
+            ],
+            "warnings": [
+                "Severe dehydration can be fatal in children",
+                "If unable to drink, need IV fluids"
+            ],
+            "whenToCallDoctor": "Seek help if unable to keep fluids down or no urine for 8 hours."
+        },
+        "breathing_difficulty": {
+            "title": "Breathing Difficulty",
+            "icon": "🫁",
+            "steps": [
+                "Sit upright",
+                "Loosen clothing",
+                "Open windows",
+                "Help use inhaler if available",
+                "Slow deep breathing: nose in, mouth out",
+                "Call 108 if no improvement in 5 min",
+                "Watch for blue lips"
+            ],
+            "warnings": [
+                "Blue lips = severe oxygen deprivation — critical",
+                "Do NOT give sedatives"
+            ],
+            "whenToCallDoctor": "Call 108 for significant breathing difficulty."
+        },
+        "general_care": {
+            "title": "General Home Care",
+            "icon": "🏠",
+            "steps": [
+                "Rest and stay hydrated",
+                "Check temperature if fever suspected",
+                "OTC pain relief if needed",
+                "Clean and cover minor wounds",
+                "Monitor 24-48 hours",
+                "See doctor if symptoms persist"
+            ],
+            "warnings": [
+                "Do NOT ignore persistent symptoms",
+                "See doctor if fever > 3 days"
+            ],
+            "whenToCallDoctor": "See doctor if symptoms last > 48 hours or worsen."
+        }
+    }
+}

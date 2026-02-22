@@ -1,0 +1,25 @@
+{
+    "name": "UPLINE — Offline Emergency Triage",
+    "short_name": "UPLINE",
+    "description": "Privacy-first offline emergency triage assistant using on-device AI for voice symptom input and rule-based urgency assessment.",
+    "start_url": "./index.html",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "theme_color": "#0a0e1a",
+    "background_color": "#0a0e1a",
+    "categories": [
+        "health",
+        "medical",
+        "utilities"
+    ],
+    "lang": "en",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236366f1'/><text x='50' y='68' text-anchor='middle' font-size='50'>🏥</text></svg>",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

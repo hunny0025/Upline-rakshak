@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <!-- SEO & Meta -->
+  <title>UPLINE — Offline Emergency Triage Assistant</title>
+  <meta name="description"
+    content="Privacy-first offline emergency triage assistant. Voice-powered symptom assessment with verified first-aid guidance. Works without internet.">
+  <meta name="keywords" content="emergency, triage, offline, first aid, medical, health, voice, India">
+  <meta name="author" content="UPLINE">
+
+  <!-- PWA Meta -->
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="UPLINE">
+  <link rel="manifest" href="./manifest.json">
+
+  <!-- Favicon -->
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236366f1'/><text x='50' y='68' text-anchor='middle' font-size='50'>🏥</text></svg>">
+
+  <!-- Leaflet CSS for Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="./css/variables.css">
+  <link rel="stylesheet" href="./css/base.css">
+  <link rel="stylesheet" href="./css/components.css">
+  <link rel="stylesheet" href="./css/pages.css">
+</head>
+
+<body>
+  <!-- App Shell -->
+  <div id="app">
+    <!-- Page Content -->
+    <div id="page-container"></div>
+
+    <!-- Bottom Navigation -->
+    <nav class="nav-bar" id="nav-bar">
+      <button class="nav-item active" data-page="/dashboard" onclick="Router.navigate('/dashboard')" id="nav-dashboard">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button class="nav-item" data-page="/triage-chat" onclick="Router.navigate('/triage-chat')" id="nav-voice">
+        <span class="nav-icon">🤖</span>
+        <span class="nav-label">Triage</span>
+      </button>
+      <button class="nav-item" data-page="/firstaid" onclick="Router.navigate('/firstaid')" id="nav-firstaid">
+        <span class="nav-icon">🩹</span>
+        <span class="nav-label">First Aid</span>
+      </button>
+      <button class="nav-item" data-page="/emergency" onclick="Router.navigate('/emergency')" id="nav-emergency">
+        <span class="nav-icon">🚑</span>
+        <span class="nav-label">Emergency</span>
+      </button>
+      <button class="nav-item" data-page="/settings" onclick="Router.navigate('/settings')" id="nav-settings">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Settings</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Leaflet JS for Map -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Scripts — order matters (dependencies first) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/utils/router.js"></script>
+  <script src="./js/utils/indexeddb.js"></script>
+  <script src="./js/utils/storage.js"></script>
+  <script src="./js/engine/symptoms.js"></script>
+  <script src="./js/engine/triage.js"></script>
+  <script src="./js/engine/speech.js"></script>
+  <script src="./js/pages/splash.js"></script>
+  <script src="./js/pages/dashboard.js"></script>
+  <script src="./js/pages/voice.js"></script>
+  <script src="./js/pages/results.js"></script>
+  <script src="./js/pages/firstaid.js"></script>
+  <script src="./js/pages/emergency.js"></script>
+  <script src="./js/pages/network.js"></script>
+  <script src="./js/pages/hospitals.js"></script>
+  <script src="./js/pages/settings.js"></script>
+  <script src="js/pages/medicalid.js"></script>
+  <script src="js/pages/vault.js"></script>
+  <script src="./js/pages/history.js"></script>
+  <script src="./js/pages/map.js"></script>
+  <script src="./js/pages/triage-chat.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+
+</html>

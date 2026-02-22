@@ -1,0 +1,88 @@
+{
+    "contacts": [
+        {
+            "name": "Ambulance",
+            "number": "108",
+            "description": "National Emergency Ambulance Service",
+            "icon": "🚑",
+            "priority": 1
+        },
+        {
+            "name": "Emergency",
+            "number": "112",
+            "description": "Universal Emergency Number (Police, Fire, Ambulance)",
+            "icon": "🆘",
+            "priority": 2
+        },
+        {
+            "name": "Mother & Child",
+            "number": "102",
+            "description": "Free ambulance for pregnant women and infants",
+            "icon": "🤰",
+            "priority": 3
+        },
+        {
+            "name": "Police",
+            "number": "100",
+            "description": "Police Emergency",
+            "icon": "🚔",
+            "priority": 4
+        },
+        {
+            "name": "Fire",
+            "number": "101",
+            "description": "Fire Emergency",
+            "icon": "🔥",
+            "priority": 5
+        },
+        {
+            "name": "Women Helpline",
+            "number": "1091",
+            "description": "Women in distress helpline",
+            "icon": "👩",
+            "priority": 6
+        },
+        {
+            "name": "Child Helpline",
+            "number": "1098",
+            "description": "Child abuse / child in distress",
+            "icon": "👶",
+            "priority": 7
+        },
+        {
+            "name": "Poison Control",
+            "number": "1066",
+            "description": "National Poison Information Centre (AIIMS)",
+            "icon": "☠️",
+            "priority": 8
+        },
+        {
+            "name": "Disaster Management",
+            "number": "1078",
+            "description": "National Disaster Management Authority",
+            "icon": "🌊",
+            "priority": 9
+        },
+        {
+            "name": "Blood Bank",
+            "number": "104",
+            "description": "Health Information & Blood Bank",
+            "icon": "🩸",
+            "priority": 10
+        },
+        {
+            "name": "Mental Health",
+            "number": "08046110007",
+            "description": "iCall Mental Health Helpline",
+            "icon": "🧠",
+            "priority": 11
+        },
+        {
+            "name": "Senior Citizen",
+            "number": "14567",
+            "description": "Elder abuse and senior citizen helpline",
+            "icon": "👴",
+            "priority": 12
+        }
+    ]
+}
