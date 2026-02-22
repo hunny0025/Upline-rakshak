@@ -4,6 +4,7 @@ const SpeechEngine = {
     isListening: false,
     transcript: '',
     interimTranscript: '',
+    lastInterim: '',          // Track last interim for fallback
     onResult: null,
     onEnd: null,
     onError: null,
@@ -36,6 +37,7 @@ const SpeechEngine = {
 
         this.recognition.onstart = () => {
             this.isListening = true;
+            console.log('[Speech] Started listening, lang:', lang);
             if (this.onStart) this.onStart();
         };
 
@@ -54,28 +56,34 @@ const SpeechEngine = {
 
             if (final) {
                 this.transcript += final;
+                this.lastInterim = '';  // Clear interim since we got final
             }
             this.interimTranscript = interim;
+            if (interim) this.lastInterim = interim;  // Track for fallback
+
+            // Also push to manual-input directly for reliable access
+            const fullText = (this.transcript + interim).trim();
+            const manualInput = document.getElementById('manual-input');
+            if (manualInput) manualInput.value = fullText;
 
             if (this.onResult) {
                 this.onResult({
                     final: this.transcript.trim(),
                     interim: this.interimTranscript.trim(),
-                    full: (this.transcript + interim).trim()
+                    full: fullText
                 });
             }
         };
 
         this.recognition.onerror = (event) => {
-            // Map Web Speech API error codes to human-readable messages
             const ERROR_MESSAGES = {
-                'not-allowed':         '⚠️ Microphone access denied. Please allow microphone in browser settings.',
-                'permission-denied':   '⚠️ Microphone permission denied. Check browser site settings.',
-                'audio-capture':       '🎙️ No microphone found. Please connect a microphone and try again.',
-                'aborted':             '⏹️ Listening was stopped.',
-                'network':             '🌐 Network error during speech recognition. Retrying…',
+                'not-allowed': '⚠️ Microphone access denied. Please allow microphone in browser settings.',
+                'permission-denied': '⚠️ Microphone permission denied. Check browser site settings.',
+                'audio-capture': '🎙️ No microphone found. Please connect a microphone and try again.',
+                'aborted': '⏹️ Listening was stopped.',
+                'network': '🌐 Network error during speech recognition. Retrying…',
                 'service-not-allowed': '⚠️ Speech service not allowed. Try using Chrome or Edge.',
-                'no-speech':           null,  // silent — auto restart below
+                'no-speech': null,
                 'language-not-supported': '🌍 Selected language not supported on this device.'
             };
 
@@ -84,7 +92,7 @@ const SpeechEngine = {
 
             if (this.onError) this.onError(event.error, msg);
 
-            // Auto-restart on transient / recoverable errors
+            // Auto-restart on transient errors
             if ((event.error === 'no-speech' || event.error === 'network') && this.isListening) {
                 setTimeout(() => {
                     try { this.recognition.start(); } catch (e) { /* already started */ }
@@ -93,6 +101,15 @@ const SpeechEngine = {
         };
 
         this.recognition.onend = () => {
+            console.log('[Speech] onend fired, isListening:', this.isListening);
+            // Flush any remaining interim text as final (fallback for browsers that don't fire isFinal)
+            if (this.lastInterim) {
+                this.transcript += this.lastInterim + ' ';
+                this.lastInterim = '';
+                this.interimTranscript = '';
+                const manualInput = document.getElementById('manual-input');
+                if (manualInput) manualInput.value = this.transcript.trim();
+            }
             this.isListening = false;
             if (this.onEnd) this.onEnd(this.transcript.trim());
         };
@@ -108,9 +125,11 @@ const SpeechEngine = {
 
         this.transcript = '';
         this.interimTranscript = '';
+        this.lastInterim = '';
 
         try {
             this.recognition.start();
+            console.log('[Speech] start() called');
             return true;
         } catch (e) {
             console.warn('Speech start error:', e);
@@ -119,10 +138,20 @@ const SpeechEngine = {
     },
 
     /**
-     * Stop listening.
+     * Stop listening — flush any remaining interim text.
      */
     stop() {
         if (!this.recognition) return;
+
+        // Flush leftover interim before stopping
+        if (this.lastInterim) {
+            this.transcript += this.lastInterim + ' ';
+            this.lastInterim = '';
+            this.interimTranscript = '';
+            const manualInput = document.getElementById('manual-input');
+            if (manualInput) manualInput.value = this.transcript.trim();
+        }
+
         try {
             this.recognition.stop();
         } catch (e) {
@@ -149,7 +178,7 @@ const SpeechEngine = {
      * Get the final transcript.
      */
     getTranscript() {
-        return this.transcript.trim();
+        return (this.transcript + this.lastInterim).trim();
     },
 
     /**
@@ -158,6 +187,7 @@ const SpeechEngine = {
     reset() {
         this.transcript = '';
         this.interimTranscript = '';
+        this.lastInterim = '';
     }
 };
 

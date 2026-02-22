@@ -1,5 +1,5 @@
 /* ===== UPLINE Service Worker — Cache-First Offline Strategy ===== */
-const CACHE_NAME = 'upline-v22';
+const CACHE_NAME = 'upline-v23';
 
 // Forced-offline mode flag — toggled by postMessage from the page
 let forcedOffline = false;
