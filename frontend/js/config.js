@@ -20,8 +20,8 @@ const UPLINE_CONFIG = {
             if (host === 'localhost' || host === '127.0.0.1') {
                 return 'http://localhost:5000';
             }
-            // ──  REPLACE THIS with your actual Render backend URL after first deploy ──
-            return 'https://upline-backend.onrender.com';
+            // Render backend URL
+            return 'https://upline-rakshak.onrender.com';
         }
         return '';
     })(),
