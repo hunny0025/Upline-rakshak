@@ -227,8 +227,12 @@ document.addEventListener('DOMContentLoaded', initApp);
 
 /* ===== Online Rules Sync ===== */
 async function _syncRulesFromServer() {
-    const BACKEND = (typeof UPLINE_CONFIG !== 'undefined' && UPLINE_CONFIG.BACKEND_URL) || 'http://localhost:5000';
-    if (!BACKEND || !(typeof UPLINE_CONFIG === 'undefined' || UPLINE_CONFIG.ONLINE_SYNC_ENABLED)) return;
+    // Only attempt sync when actually online
+    if (!navigator.onLine) return;
+
+    const BACKEND = (typeof UPLINE_CONFIG !== 'undefined' && UPLINE_CONFIG.BACKEND_URL) || '';
+    if (!BACKEND) return;
+    if (typeof UPLINE_CONFIG !== 'undefined' && !UPLINE_CONFIG.ONLINE_SYNC_ENABLED) return;
 
     let cachedVersion = '0.0.0';
     if (typeof DB !== 'undefined') {
@@ -237,7 +241,10 @@ async function _syncRulesFromServer() {
     }
 
     try {
-        const res = await fetch(`${BACKEND}/api/rules/latest?version=${cachedVersion}`, { signal: AbortSignal.timeout(5000) });
+        const res = await fetch(`${BACKEND}/api/rules/latest?version=${cachedVersion}`, {
+            signal: AbortSignal.timeout(3000),
+            mode: 'cors'
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (data.hasUpdate && data.rulesPayload && typeof DB !== 'undefined') {
@@ -246,6 +253,7 @@ async function _syncRulesFromServer() {
             console.log('[Sync] Rules updated to version', data.version);
         }
     } catch (e) {
-        // No backend available — silently skip (offline-first)
+        // Backend unreachable — silently skip (offline-first)
+        console.log('[Sync] Skipped — backend unavailable');
     }
 }
