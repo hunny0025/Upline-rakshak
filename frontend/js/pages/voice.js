@@ -113,29 +113,33 @@ function renderVoice() {
 }
 
 let isRecording = false;
+let _micRetries = 0;
+const MAX_MIC_RETRIES = 3;
 
 function toggleMic() {
   const micBtn = document.getElementById('mic-btn');
   const waveform = document.getElementById('waveform');
   const status = document.getElementById('voice-status');
   const confWrap = document.getElementById('confidence-bar-wrap');
+  const banner = document.getElementById('voice-error-banner');
 
   if (!isRecording) {
     const lang = Storage.getLanguage();
     SpeechEngine.init(lang);
+    _micRetries = 0;
 
     SpeechEngine.onResult = (result) => {
+      _micRetries = 0;  // Got a result, reset retries
       const transcriptEl = document.getElementById('voice-transcript');
-      const manualInput = document.getElementById('manual-input');
       const confBar = document.getElementById('confidence-bar');
       const confLabel = document.getElementById('confidence-label');
 
       if (transcriptEl) {
         transcriptEl.innerHTML = result.full || '<span style="color:var(--text-muted);font-style:italic;">Listening...</span>';
       }
-      if (manualInput) manualInput.value = result.final || '';
+      // manual-input is now updated directly by speech.js — no need to duplicate here
 
-      // Confidence signal: estimate by text length
+      // Confidence signal
       const quality = Math.min(100, Math.max(10, result.full.length * 1.5));
       if (confBar) confBar.style.width = quality + '%';
       const label = quality > 70 ? 'GOOD' : quality > 40 ? 'MODERATE' : 'WEAK';
@@ -144,6 +148,21 @@ function toggleMic() {
 
     SpeechEngine.onEnd = () => {
       if (isRecording) {
+        _micRetries++;
+        if (_micRetries >= MAX_MIC_RETRIES) {
+          // Mic keeps dying — stop and show fallback
+          isRecording = false;
+          stopRecordingUI();
+          const st = document.getElementById('voice-status');
+          if (st) st.textContent = '⚠ Microphone not responding';
+          const bn = document.getElementById('voice-error-banner');
+          if (bn) {
+            bn.innerHTML = '🎙️ Voice input failed after multiple attempts.<br><strong>Try these instead:</strong> Type your symptoms in the text box below, or tap the Quick Select chips (Chest Pain, Breathing, etc.)';
+            bn.style.display = 'block';
+          }
+          return;
+        }
+        // Retry
         try { SpeechEngine.recognition.start(); } catch (e) { }
         return;
       }
@@ -151,18 +170,19 @@ function toggleMic() {
     };
 
     SpeechEngine.onError = (error, message) => {
-      const banner = document.getElementById('voice-error-banner');
       if (error === 'not-allowed' || error === 'permission-denied') {
         if (status) status.textContent = '⚠ Microphone access denied';
-        if (banner) { banner.textContent = message || '⚠️ Microphone access denied. Please allow microphone in browser settings.'; banner.style.display = 'block'; }
+        if (banner) { banner.innerHTML = '⚠️ Microphone blocked by browser.<br>Go to <strong>Site Settings → Microphone → Allow</strong>, then try again.<br>Or type your symptoms below.'; banner.style.display = 'block'; }
         stopRecordingUI();
       } else if (error === 'audio-capture') {
         if (status) status.textContent = '🎙️ No microphone detected';
-        if (banner) { banner.textContent = message || '🎙️ No microphone found. Please connect a microphone.'; banner.style.display = 'block'; }
+        if (banner) { banner.innerHTML = '🎙️ No microphone found.<br>Type symptoms in the box below or tap the Quick Select chips.'; banner.style.display = 'block'; }
         stopRecordingUI();
       } else if (error === 'language-not-supported') {
         if (status) status.textContent = '🌍 Language not supported';
-        if (banner) { banner.textContent = message || '🌍 Language not supported on this device. Try English.'; banner.style.display = 'block'; }
+        if (banner) { banner.innerHTML = message || '🌍 Language not supported. Switch to English and try again.'; banner.style.display = 'block'; }
+      } else if (error === 'no-speech') {
+        // Silent — auto-restart handled by onEnd
       } else if (message) {
         if (banner) { banner.textContent = message; banner.style.display = 'block'; }
       }
@@ -175,12 +195,11 @@ function toggleMic() {
       if (waveform) waveform.classList.add('active');
       if (status) status.textContent = '● LISTENING — SPEAK NOW';
       if (confWrap) confWrap.style.display = 'block';
-      // Hide any previous error
-      const banner = document.getElementById('voice-error-banner');
       if (banner) banner.style.display = 'none';
       if (navigator.vibrate) navigator.vibrate(50);
     } else {
-      if (status) status.textContent = '⚠ Could not start. Try again.';
+      if (status) status.textContent = '⚠ Mic unavailable — type below';
+      if (banner) { banner.innerHTML = '🎤 Could not start voice recognition.<br>Type your symptoms in the text box below or use the Quick Select chips.'; banner.style.display = 'block'; }
     }
   } else {
     isRecording = false;
